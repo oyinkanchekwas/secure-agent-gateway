@@ -32,6 +32,8 @@ its roles. The attacker may inspect returned tool output.
 | Session substitution | Signed session handle and optional credential-to-session binding |
 | Repeated calls | Per-principal and per-tool sliding window |
 | Audit modification | Redaction and hash-linked records |
+| Process restart replay | Persistent request claims in `SQLiteSessionStore` |
+| Cross-process sequence race | Immediate SQLite transaction around evaluation and effect commit |
 
 ## Assumptions
 
@@ -43,6 +45,7 @@ check. Host-issued session handles are opaque, time-bounded, and checked against
 
 ## Outside this release
 
-This release does not sandbox adapters, distribute keys, rotate credentials, terminate TLS, or
-provide a shared state store. It does not infer effects from tool output or inspect the semantic
-content of permitted payloads. Host applications must add controls for those responsibilities.
+This release does not sandbox adapters, distribute keys, rotate credentials, or terminate TLS. It
+does not infer effects from tool output or inspect the semantic content of permitted payloads.
+Pending approvals, nonce windows, and rate counters are not persisted by `SQLiteSessionStore`.
+Host applications must add controls for those responsibilities.

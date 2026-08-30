@@ -9,12 +9,22 @@ from secure_agent_gateway.approvals import ApprovalAuthority
 from secure_agent_gateway.audit import AuditLog
 from secure_agent_gateway.auth import Authenticator, PrincipalCredential
 from secure_agent_gateway.gateway import SecureAgentGateway
-from secure_agent_gateway.models import Control, ExecutionContext, Principal
+from secure_agent_gateway.models import (
+    Control,
+    ExecutionContext,
+    PolicyDecision,
+    Principal,
+)
 from secure_agent_gateway.policy import PolicyEngine
 from secure_agent_gateway.rate_limit import RateLimit
 from secure_agent_gateway.registry import ToolRegistry, ToolSpec
 from secure_agent_gateway.schema import FieldSpec
-from secure_agent_gateway.session import SequencePolicy, SequenceRule
+from secure_agent_gateway.session import (
+    SequencePolicy,
+    SequenceRule,
+    SessionEvent,
+    SessionSnapshot,
+)
 
 from tests.support import APPROVAL_KEY, AUTH_KEY, NOW, make_gateway, make_request, sign
 
@@ -31,6 +41,139 @@ def exfiltration_rule(*, window_events: int | None = None) -> SequenceRule:
 
 
 class SequencePolicyTests(unittest.TestCase):
+    def test_base_denial_cannot_be_downgraded_to_approval(self) -> None:
+        policy = SequencePolicy(
+            [
+                SequenceRule(
+                    rule_id="approval-after-customer-read",
+                    target_tools=frozenset({"send_message"}),
+                    required_effects=frozenset({"data.customer"}),
+                    control=Control.REQUIRE_APPROVAL,
+                    reason_code="sequence.customer_data_review",
+                )
+            ]
+        )
+        snapshot = SessionSnapshot(
+            "agent-1",
+            "session-1",
+            (SessionEvent(1, "req-1", "read_customer", frozenset({"data.customer"})),),
+        )
+        base = PolicyDecision(
+            control=Control.DENY,
+            reason_codes=("network.host_denied",),
+            evidence_fields=("arguments.destination",),
+            request_digest="a" * 64,
+            policy_version="test-policy",
+        )
+        request = make_request(
+            request_id="req-2",
+            nonce="nonce-2",
+            tool="send_message",
+            arguments={"destination": "https://denied.example.test"},
+        )
+
+        decision = policy.evaluate(request, snapshot, base)
+
+        self.assertEqual(decision.control, Control.DENY)
+        self.assertEqual(decision.reason_codes, base.reason_codes)
+        self.assertEqual(decision.evidence_fields, base.evidence_fields)
+
+    def test_base_denial_keeps_its_cause_when_sequence_also_denies(self) -> None:
+        policy = SequencePolicy([exfiltration_rule()])
+        snapshot = SessionSnapshot(
+            "agent-1",
+            "session-1",
+            (SessionEvent(1, "req-1", "read_customer", frozenset({"data.customer"})),),
+        )
+        base = PolicyDecision(
+            control=Control.DENY,
+            reason_codes=("network.host_denied",),
+            evidence_fields=("arguments.destination",),
+            request_digest="a" * 64,
+            policy_version="test-policy",
+        )
+        request = make_request(
+            request_id="req-2",
+            nonce="nonce-2",
+            tool="send_message",
+            arguments={"destination": "https://denied.example.test"},
+        )
+
+        decision = policy.evaluate(request, snapshot, base)
+
+        self.assertEqual(decision.control, Control.DENY)
+        self.assertEqual(decision.reason_codes, ("network.host_denied",))
+        self.assertEqual(decision.evidence_fields, ("arguments.destination",))
+
+    def test_base_approval_and_sequence_approval_keep_both_causes(self) -> None:
+        policy = SequencePolicy(
+            [
+                SequenceRule(
+                    rule_id="approval-after-customer-read",
+                    target_tools=frozenset({"send_message"}),
+                    required_effects=frozenset({"data.customer"}),
+                    control=Control.REQUIRE_APPROVAL,
+                    reason_code="sequence.customer_data_review",
+                )
+            ]
+        )
+        snapshot = SessionSnapshot(
+            "agent-1",
+            "session-1",
+            (SessionEvent(1, "req-1", "read_customer", frozenset({"data.customer"})),),
+        )
+        base = PolicyDecision(
+            control=Control.REQUIRE_APPROVAL,
+            reason_codes=("tool.approval_required",),
+            evidence_fields=("tool",),
+            request_digest="a" * 64,
+            policy_version="test-policy",
+        )
+        request = make_request(
+            request_id="req-2",
+            nonce="nonce-2",
+            tool="send_message",
+            arguments={"destination": "https://external.example.test"},
+        )
+
+        decision = policy.evaluate(request, snapshot, base)
+
+        self.assertEqual(decision.control, Control.REQUIRE_APPROVAL)
+        self.assertEqual(
+            decision.reason_codes,
+            ("tool.approval_required", "sequence.customer_data_review"),
+        )
+        self.assertIn(
+            "session.events.req-1.effects.data.customer",
+            decision.evidence_fields,
+        )
+
+    def test_sequence_denial_strengthens_base_approval(self) -> None:
+        policy = SequencePolicy([exfiltration_rule()])
+        snapshot = SessionSnapshot(
+            "agent-1",
+            "session-1",
+            (SessionEvent(1, "req-1", "read_customer", frozenset({"data.customer"})),),
+        )
+        base = PolicyDecision(
+            control=Control.REQUIRE_APPROVAL,
+            reason_codes=("tool.approval_required",),
+            evidence_fields=("tool",),
+            request_digest="a" * 64,
+            policy_version="test-policy",
+        )
+        request = make_request(
+            request_id="req-2",
+            nonce="nonce-2",
+            tool="send_message",
+            arguments={"destination": "https://external.example.test"},
+        )
+
+        decision = policy.evaluate(request, snapshot, base)
+
+        self.assertEqual(decision.control, Control.DENY)
+        self.assertEqual(decision.reason_codes, ("sequence.customer_data_egress",))
+
     def test_prior_effect_blocks_later_sink_with_event_evidence(self) -> None:
         with TemporaryDirectory() as directory:
             fixture = make_gateway(

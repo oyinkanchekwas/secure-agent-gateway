@@ -44,6 +44,9 @@ Policy evaluation follows this order:
 Each decision records machine-readable reason codes and the fields that caused it. Adapters receive
 only requests that reach `allow` or carry a valid approval receipt.
 
+Policy composition is monotonic. A base denial remains a denial. A sequence denial can strengthen
+an approval decision, and equal approval decisions retain evidence from both policy layers.
+
 Successful adapter calls append declared effects to the session history. Evaluation and effect
 recording share a per-session lock, so concurrent calls cannot observe a partially committed
 sequence.
@@ -89,3 +92,22 @@ rate state.
 Paired trajectory contracts apply the same controlled-pair rule to multi-call workflows. They stop
 at the first intervention and record its index and causal session evidence. Mutation analysis tests
 whether the suite notices removed or weakened sequence rules.
+
+## Bounded relational check
+
+`BoundedRelationalChecker` explores the configured invocation alphabet breadth first. It extends
+only traces whose latest runtime decision is `allow`, matching the histories that can be produced
+without approval. The search stops at the supplied event depth and decision budget.
+
+`FlowRequirement` supplies the expected effect-to-sink relation through a separate data model. The
+oracle reads successful events and does not invoke the runtime sequence matcher. Reports include
+controlled permitted and prohibited boundaries, finite-model metrics, and shortest
+counterexamples. Mutation analysis reruns the same independent requirements against changed
+runtime policies.
+
+## Session stores
+
+`InMemorySessionStore` is the default. `SQLiteSessionStore` stores request claims and successful
+effects on disk. An immediate SQLite transaction covers the session snapshot, policy evaluation,
+adapter call, and effect commit. SQLite permits one writer at a time, so this implementation favours
+strict ordering over write concurrency.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 - 2026-08-31
+
+- Prevented sequence rules from weakening base policy denials.
+- Separated MCP adapter failures from policy-denial messages.
+- Added finite sequence exploration against independent flow requirements.
+- Added controlled relational boundaries and shortest counterexamples.
+- Added mutation checks driven by the independent requirement model.
+- Added SQLite persistence for request claims and successful session effects.
+- Added `execution_uncertain` for adapter success followed by session-state commit failure.
+
 ## 0.2.0 - 2026-08-31
 
 - Added signed session identifiers and optional credential-to-session binding.

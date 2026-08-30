@@ -26,6 +26,16 @@ Tool-call gateways already cover much of the enforcement base used here.
   verifies them at the tool boundary.
 - [Intent-Governed Access Control](https://arxiv.org/abs/2606.22916) binds permissions to a declared
   intent and narrows authority within a session.
+- [Solver-Aided Tool Policy Compliance for LLM Agents](https://arxiv.org/abs/2603.20449) expresses
+  tool policy as declarative constraints and checks candidate calls with a solver.
+- [Agent-C](https://arxiv.org/abs/2512.23738) defines temporal constraints for agent workflows and
+  evaluates execution traces against them.
+- [Verified Tool Calls](https://arxiv.org/abs/2608.02645) studies tool protocols under non-atomic
+  failure, including ambiguous execution outcomes.
+- [Temporal Agent Harness](https://github.com/temporal-community/temporal-agent-harness) provides
+  durable agent execution and replay on Temporal.
+- [Temper](https://github.com/nerdsane/temper) applies model checking to agent behaviour described
+  by a formal specification.
 - [Safeguarding LLM Agents from Misalignment through Provenance Analysis](https://arxiv.org/abs/2607.01236)
   measures unnecessary interventions on aligned agent traces. The contract report uses the same
   operational concern when it measures permitted requests that do not receive `allow`.
@@ -43,3 +53,7 @@ control, narrowing its event window, or deleting one condition creates a new pol
 same paired trajectories. The mutation report records which faults the suite detects. This serves a
 different purpose from runtime attack detection: it asks whether a policy regression would be
 caught before release.
+
+The v0.3 checker compares a runtime sequence policy with a separately authored flow model. It
+searches a finite state space for the shortest failed trace, measures controlled safety and access
+boundaries, and tests whether the independent model catches supported policy mutations.

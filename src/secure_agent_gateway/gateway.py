@@ -32,6 +32,7 @@ from secure_agent_gateway.session import (
     SequencePolicy,
     SessionEvent,
     SessionSnapshot,
+    SessionStore,
 )
 
 
@@ -53,7 +54,7 @@ class SecureAgentGateway:
         audit_log: AuditLog,
         secret_provider: SecretProvider | None = None,
         pending_ttl_seconds: int = 900,
-        session_store: InMemorySessionStore | None = None,
+        session_store: SessionStore | None = None,
         sequence_policy: SequencePolicy | None = None,
     ) -> None:
         self._authenticator = authenticator
@@ -62,11 +63,12 @@ class SecureAgentGateway:
         self._audit = audit_log
         self._secret_provider = secret_provider
         self._pending_ttl_seconds = pending_ttl_seconds
-        self._sessions = session_store or InMemorySessionStore()
+        self._sessions = (
+            session_store if session_store is not None else InMemorySessionStore()
+        )
         self._sequence_policy = sequence_policy or SequencePolicy(())
         self._sequence_policy.validate_registry(self._policy.registry)
         self._pending: dict[str, PendingCall] = {}
-        self._request_ids: set[str] = set()
         self._state_lock = Lock()
 
     def submit(self, envelope: SignedRequest, *, now: int | None = None) -> GatewayResult:
@@ -97,11 +99,11 @@ class SecureAgentGateway:
                 audit_event_id=event_id,
             )
 
-        with self._state_lock:
-            duplicate_request_id = request.request_id in self._request_ids
-            if not duplicate_request_id:
-                self._request_ids.add(request.request_id)
-        if duplicate_request_id:
+        if not self._sessions.claim_request(
+            request.request_id,
+            principal.principal_id,
+            now=observed_now,
+        ):
             decision = PolicyDecision(
                 control=Control.DENY,
                 reason_codes=("request.duplicate_id",),
@@ -320,13 +322,29 @@ class SecureAgentGateway:
                 audit_event_id=event_id,
                 approval_id=approval_id,
             )
-        session_event = self._sessions.record_success(
-            principal.principal_id,
-            request.session_id,
-            request.request_id,
-            request.tool,
-            registered.spec.emitted_effects,
-        )
+        try:
+            session_event = self._sessions.record_success(
+                principal.principal_id,
+                request.session_id,
+                request.request_id,
+                request.tool,
+                registered.spec.emitted_effects,
+            )
+        except Exception:
+            event_id = self._record(
+                request,
+                decision,
+                status="execution_uncertain",
+                now=now,
+                approval_id=approval_id,
+            )
+            return GatewayResult(
+                status="execution_uncertain",
+                decision=decision,
+                error_code="state.commit_failed",
+                audit_event_id=event_id,
+                approval_id=approval_id,
+            )
         event_id = self._record(
             request,
             decision,

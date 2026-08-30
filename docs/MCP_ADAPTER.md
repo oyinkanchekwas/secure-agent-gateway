@@ -44,6 +44,9 @@ Policy denials and adapter failures return tool errors. An undisclosed tool rais
 `MCPProtocolError(-32602)`, which the surrounding server should convert to a JSON-RPC invalid-params
 error.
 
+An `execution_uncertain` result also returns a tool error, with wording that tells the host the
+external action may have occurred. It is kept distinct from policy denial and adapter failure.
+
 Pending approval also returns a tool error to prevent the model from assuming execution occurred.
 The accompanying `MCPToolCallResult.gateway_result` gives trusted host code the request identifier
 needed for its approval UI. That identifier is absent from `protocol_result`.

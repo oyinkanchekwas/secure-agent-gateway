@@ -6,10 +6,70 @@ from tempfile import TemporaryDirectory
 from threading import Barrier, Thread
 import unittest
 
+from secure_agent_gateway.models import Control
+from secure_agent_gateway.session import (
+    InMemorySessionStore,
+    SequencePolicy,
+    SequenceRule,
+)
+
 from tests.support import NOW, make_gateway, make_request, sign
 
 
 class SecureAgentGatewayTests(unittest.TestCase):
+    def test_state_commit_failure_reports_an_uncertain_execution(self) -> None:
+        class FailingCommitStore(InMemorySessionStore):
+            def record_success(self, *args, **kwargs):
+                raise RuntimeError("state unavailable")
+
+        with TemporaryDirectory() as directory:
+            fixture = make_gateway(
+                Path(directory),
+                session_store=FailingCommitStore(),
+            )
+            result = fixture.gateway.submit(sign(make_request()), now=NOW)
+            records = fixture.audit.verify()
+
+        self.assertEqual(result.status, "execution_uncertain")
+        self.assertEqual(result.error_code, "state.commit_failed")
+        self.assertEqual(len(fixture.calls), 1)
+        self.assertEqual(records[-1]["event"]["status"], "execution_uncertain")
+        self.assertNotIn("state unavailable", str(records))
+
+    def test_sequence_approval_cannot_override_host_denial(self) -> None:
+        sequence_policy = SequencePolicy(
+            [
+                SequenceRule(
+                    rule_id="review-customer-data-post",
+                    target_tools=frozenset({"post_results"}),
+                    required_effects=frozenset({"data.customer"}),
+                    control=Control.REQUIRE_APPROVAL,
+                    reason_code="sequence.customer_data_review",
+                )
+            ]
+        )
+        with TemporaryDirectory() as directory:
+            fixture = make_gateway(
+                Path(directory),
+                sequence_policy=sequence_policy,
+            )
+            read = make_request(tool="read_customer", arguments={})
+            fixture.gateway.submit(sign(read), now=NOW)
+            post = make_request(
+                request_id="req-2",
+                nonce="nonce-2",
+                tool="post_results",
+                arguments={
+                    "destination": "https://denied.example.test/results",
+                    "payload": {"result": "fixture"},
+                },
+            )
+            result = fixture.gateway.submit(sign(post), now=NOW + 1)
+
+        self.assertEqual(result.status, "denied")
+        self.assertEqual(result.error_code, "network.host_denied")
+        self.assertEqual(len(fixture.calls), 1)
+
     def test_allowed_call_executes_registered_adapter(self) -> None:
         with TemporaryDirectory() as directory:
             fixture = make_gateway(Path(directory))

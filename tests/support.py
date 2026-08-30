@@ -14,7 +14,7 @@ from secure_agent_gateway.rate_limit import RateLimit
 from secure_agent_gateway.registry import ToolRegistry, ToolSpec
 from secure_agent_gateway.schema import FieldSpec
 from secure_agent_gateway.secrets import MappingSecretProvider
-from secure_agent_gateway.session import SequencePolicy
+from secure_agent_gateway.session import SequencePolicy, SessionStore
 
 
 NOW = 1_800_000_000
@@ -60,6 +60,7 @@ def make_gateway(
     tmp_path: Path,
     *,
     sequence_policy: SequencePolicy | None = None,
+    session_store: SessionStore | None = None,
 ) -> GatewayFixture:
     calls: list[tuple[str, Mapping[str, Any], str | None]] = []
     principal = Principal("agent-1", frozenset({"researcher", "operator"}))
@@ -167,6 +168,7 @@ def make_gateway(
         secret_provider=MappingSecretProvider({"research-service": "fixture-service-value"}),
         pending_ttl_seconds=120,
         sequence_policy=sequence_policy,
+        session_store=session_store,
     )
     return GatewayFixture(
         gateway=gateway,

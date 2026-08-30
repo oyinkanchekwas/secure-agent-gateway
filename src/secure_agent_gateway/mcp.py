@@ -186,9 +186,17 @@ def _protocol_result(result: GatewayResult) -> dict[str, Any]:
         return payload
     if result.status == "pending_approval":
         message = "Tool execution requires approval from the host application."
-    else:
+    elif result.status == "denied":
         code = result.error_code or "gateway.denied"
         message = f"Tool execution was denied by gateway policy: {code}."
+    elif result.status == "execution_failed":
+        code = result.error_code or "adapter.failure"
+        message = f"Tool execution failed in the registered adapter: {code}."
+    elif result.status == "execution_uncertain":
+        code = result.error_code or "state.commit_failed"
+        message = f"Tool execution outcome is uncertain: {code}."
+    else:
+        message = f"Tool execution did not complete: {result.status}."
     return {
         "resultType": "complete",
         "content": [{"type": "text", "text": message}],
