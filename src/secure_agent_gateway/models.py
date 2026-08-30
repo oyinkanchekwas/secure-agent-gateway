@@ -31,6 +31,7 @@ class ToolRequest:
     arguments: Mapping[str, Any]
     issued_at: int
     nonce: str
+    session_id: str = "default"
 
     def to_mapping(self) -> dict[str, Any]:
         return {
@@ -40,6 +41,7 @@ class ToolRequest:
             "arguments": dict(self.arguments),
             "issued_at": self.issued_at,
             "nonce": self.nonce,
+            "session_id": self.session_id,
         }
 
 
@@ -57,6 +59,7 @@ class PolicyDecision:
     evidence_fields: tuple[str, ...]
     request_digest: str
     policy_version: str
+    context_digest: str = "0" * 64
 
     def to_mapping(self) -> dict[str, Any]:
         return {
@@ -65,6 +68,7 @@ class PolicyDecision:
             "evidence_fields": list(self.evidence_fields),
             "request_digest": self.request_digest,
             "policy_version": self.policy_version,
+            "context_digest": self.context_digest,
         }
 
 

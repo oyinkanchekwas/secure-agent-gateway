@@ -18,6 +18,12 @@ def no_op(arguments, context: ExecutionContext):
 
 
 class PolicyEngineTests(unittest.TestCase):
+    def test_v01_positional_field_and_tool_arguments_remain_compatible(self) -> None:
+        field = FieldSpec("string", False)
+        spec = ToolSpec("search", {"query": field}, frozenset({"researcher"}), RiskLevel.ELEVATED)
+        self.assertFalse(field.required)
+        self.assertEqual(spec.risk, RiskLevel.ELEVATED)
+
     def setUp(self) -> None:
         self.registry = ToolRegistry()
         self.principal = Principal("agent-1", frozenset({"researcher"}))

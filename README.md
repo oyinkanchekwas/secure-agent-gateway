@@ -4,16 +4,21 @@ Secure Agent Gateway controls how a coding agent reaches registered tools. An ag
 signed request; the gateway checks identity, role, parameters, rate, and policy before any adapter
 runs.
 
-Version `0.1.0` provides:
+Version `0.2.0` provides:
 
 - HMAC-signed request envelopes with timestamp and nonce checks.
 - Role and tool allowlists with strict parameter rules.
 - Filesystem-root and HTTPS destination checks.
 - Sliding-window rate limits.
 - One-use approval receipts bound to the request digest and policy version.
+- Session-bound approvals that expire when an intervening tool succeeds.
 - Server-side credential injection after policy approval.
 - Redacted JSONL audit records linked by SHA-256 hashes.
 - Paired policy contracts for prevention, retained access, and evidence checks.
+- Sequence rules over recorded tool effects, with causal event evidence.
+- Paired trajectory contracts with first-intervention checks.
+- Mutation analysis for disabled, weakened, and narrowed sequence rules.
+- An MCP host adapter for the `2026-07-28` tool result format.
 - Python 3.11 and 3.12 tests for permitted calls and attack cases.
 
 ## Request path
@@ -32,14 +37,19 @@ role, schema, destination, path, and rate policy
 allow or pending approval
     |
     v
+session sequence policy
+    |                    |
+    |                    +--> deny
+    v
 registered adapter
     |
     v
 redacted audit record
 ```
 
-Approval receipts contain the request digest, policy version, approver identity, issue time, expiry,
-and a one-use identifier. A changed request or policy version invalidates the receipt.
+Approval receipts contain the request digest, policy version, session-context digest, approver
+identity, issue time, expiry, and a one-use identifier. A changed request, policy version, or
+session history invalidates the receipt.
 
 Tool credentials are configured on the registered adapter. They do not appear in the agent request
 or audit record.
@@ -56,6 +66,34 @@ PYTHONPATH=src python3.11 examples/run_policy_contracts.py
 ```
 
 See [Paired policy contracts](docs/POLICY_CONTRACTS.md) for the data model, metrics, and limits.
+
+## Sequence assurance
+
+A registered tool may declare stable effects such as `data.customer`. Effects enter session history
+only after the adapter succeeds. A sequence rule can then intervene when a later tool would combine
+with those effects. Decisions identify the earlier event that supplied each causal effect.
+
+The trajectory runner tests a prohibited sequence beside a minimally changed permitted sequence.
+It checks the full control path, the first intervention, causal evidence, and retained task access.
+The mutation analyser removes or weakens sequence rules and records which changes the suite catches.
+
+```bash
+PYTHONPATH=src python3.11 examples/run_sequence_assurance.py
+PYTHONPATH=src python3.11 scripts/benchmark_sequence_policy.py --iterations 10000
+```
+
+The checked report is at
+[`reports/v0.2-sequence-assurance.json`](reports/v0.2-sequence-assurance.json). See
+[Sequence assurance](docs/SEQUENCE_ASSURANCE.md) for the contract model and limits.
+
+## MCP host adapter
+
+`MCPGatewayAdapter` converts an authorised MCP tool call into a signed gateway request. Tool
+discovery is sorted, restricted to a host-supplied set, and marked for private caching. The adapter
+uses an opaque, host-issued session handle for sequence state and keeps pending approval identifiers
+out of model-visible tool content.
+
+See [MCP host adapter](docs/MCP_ADAPTER.md) for integration requirements.
 
 ## Run the checks
 
@@ -100,8 +138,8 @@ The execution context carries the authenticated principal and any server-selecte
 
 ## Current limits
 
-Nonce, rate, request, and pending-approval state is held in memory. A multi-process service needs a
-shared transactional store. Registered adapters run as trusted application code and are not
+Nonce, rate, request, pending-approval, and session state is held in memory. A multi-process service
+needs a shared transactional store. Registered adapters run as trusted application code and are not
 sandboxed. The audit chain detects record edits; external anchoring is needed to detect truncation
 or replacement of the complete file.
 

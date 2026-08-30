@@ -13,10 +13,29 @@ from secure_agent_gateway.contracts import (
     PolicyContractRunner,
 )
 from secure_agent_gateway.gateway import SecureAgentGateway
+from secure_agent_gateway.mcp import MCPGatewayAdapter, MCPProtocolError, MCPToolCallResult
 from secure_agent_gateway.models import Control, Principal, RiskLevel, ToolRequest
 from secure_agent_gateway.policy import PolicyEngine
 from secure_agent_gateway.registry import ToolRegistry, ToolSpec
 from secure_agent_gateway.schema import FieldSpec
+from secure_agent_gateway.session import (
+    InMemorySessionStore,
+    SequencePolicy,
+    SequenceRule,
+    SessionEvent,
+    SessionSnapshot,
+)
+from secure_agent_gateway.trajectory import (
+    MutationOutcome,
+    MutationReport,
+    PairedTrajectoryContract,
+    SequenceMutationAnalyser,
+    TrajectoryCase,
+    TrajectoryCaseResult,
+    TrajectoryContractRunner,
+    TrajectoryReport,
+    TrajectoryThresholds,
+)
 
 __all__ = [
     "ContractAttestation",
@@ -30,17 +49,34 @@ __all__ = [
     "Authenticator",
     "Control",
     "FieldSpec",
+    "InMemorySessionStore",
+    "MCPGatewayAdapter",
+    "MCPProtocolError",
+    "MCPToolCallResult",
+    "MutationOutcome",
+    "MutationReport",
     "PairedPolicyContract",
+    "PairedTrajectoryContract",
     "PolicyEngine",
     "PolicyContractRunner",
     "Principal",
     "PrincipalCredential",
     "RiskLevel",
     "SecureAgentGateway",
+    "SequenceMutationAnalyser",
+    "SequencePolicy",
+    "SequenceRule",
+    "SessionEvent",
+    "SessionSnapshot",
     "ToolRegistry",
     "ToolRequest",
     "ToolSpec",
+    "TrajectoryCase",
+    "TrajectoryCaseResult",
+    "TrajectoryContractRunner",
+    "TrajectoryReport",
+    "TrajectoryThresholds",
     "sign_request",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

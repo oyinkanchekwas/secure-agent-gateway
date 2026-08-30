@@ -14,6 +14,7 @@ from secure_agent_gateway.rate_limit import RateLimit
 from secure_agent_gateway.registry import ToolRegistry, ToolSpec
 from secure_agent_gateway.schema import FieldSpec
 from secure_agent_gateway.secrets import MappingSecretProvider
+from secure_agent_gateway.session import SequencePolicy
 
 
 NOW = 1_800_000_000
@@ -29,6 +30,7 @@ def make_request(
     arguments: Mapping[str, Any] | None = None,
     issued_at: int = NOW,
     principal_id: str = "agent-1",
+    session_id: str = "session-1",
 ) -> ToolRequest:
     return ToolRequest(
         request_id=request_id,
@@ -37,6 +39,7 @@ def make_request(
         arguments={"query": "policy"} if arguments is None else arguments,
         issued_at=issued_at,
         nonce=nonce,
+        session_id=session_id,
     )
 
 
@@ -53,7 +56,11 @@ class GatewayFixture:
     calls: list[tuple[str, Mapping[str, Any], str | None]]
 
 
-def make_gateway(tmp_path: Path) -> GatewayFixture:
+def make_gateway(
+    tmp_path: Path,
+    *,
+    sequence_policy: SequencePolicy | None = None,
+) -> GatewayFixture:
     calls: list[tuple[str, Mapping[str, Any], str | None]] = []
     principal = Principal("agent-1", frozenset({"researcher", "operator"}))
     authenticator = Authenticator(
@@ -118,6 +125,36 @@ def make_gateway(tmp_path: Path) -> GatewayFixture:
         ),
         lambda arguments, context: (_ for _ in ()).throw(RuntimeError("adapter broke")),
     )
+    registry.register(
+        ToolSpec(
+            name="read_customer",
+            fields={},
+            allowed_roles=frozenset({"researcher"}),
+            emitted_effects=frozenset({"data.customer"}),
+            rate_limit=RateLimit(5, 60),
+        ),
+        handler("read_customer"),
+    )
+    registry.register(
+        ToolSpec(
+            name="broken_sensitive_read",
+            fields={},
+            allowed_roles=frozenset({"researcher"}),
+            emitted_effects=frozenset({"data.customer"}),
+            rate_limit=RateLimit(5, 60),
+        ),
+        lambda arguments, context: (_ for _ in ()).throw(RuntimeError("read failed")),
+    )
+    registry.register(
+        ToolSpec(
+            name="send_message",
+            fields={"destination": FieldSpec("string")},
+            allowed_roles=frozenset({"researcher"}),
+            host_rules={"destination": ("external.example.test",)},
+            rate_limit=RateLimit(5, 60),
+        ),
+        handler("send_message"),
+    )
 
     approvals = ApprovalAuthority(APPROVAL_KEY, {"reviewer-1"})
     audit = AuditLog(tmp_path / "audit.jsonl")
@@ -129,6 +166,7 @@ def make_gateway(tmp_path: Path) -> GatewayFixture:
         audit_log=audit,
         secret_provider=MappingSecretProvider({"research-service": "fixture-service-value"}),
         pending_ttl_seconds=120,
+        sequence_policy=sequence_policy,
     )
     return GatewayFixture(
         gateway=gateway,

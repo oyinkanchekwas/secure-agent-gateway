@@ -46,12 +46,17 @@ class PrincipalCredential:
     key_id: str
     principal: Principal
     secret: bytes = field(repr=False)
+    allowed_session_ids: frozenset[str] | None = None
 
     def __post_init__(self) -> None:
         if not self.key_id or len(self.key_id) > 256:
             raise ValueError("credential key_id is invalid")
         if not isinstance(self.secret, bytes) or len(self.secret) < 16:
             raise ValueError("credential secret must contain at least 16 bytes")
+        if self.allowed_session_ids is not None:
+            if not self.allowed_session_ids or any(not value for value in self.allowed_session_ids):
+                raise ValueError("allowed_session_ids cannot be empty")
+            object.__setattr__(self, "allowed_session_ids", frozenset(self.allowed_session_ids))
 
 
 class NonceStore:
@@ -110,6 +115,11 @@ class Authenticator:
             raise AuthenticationError("auth.invalid_signature")
         if credential.principal.principal_id != envelope.request.principal_id:
             raise AuthenticationError("auth.principal_mismatch")
+        if (
+            credential.allowed_session_ids is not None
+            and envelope.request.session_id not in credential.allowed_session_ids
+        ):
+            raise AuthenticationError("auth.session_mismatch")
         if abs(observed_now - envelope.request.issued_at) > self._max_clock_skew_seconds:
             raise AuthenticationError("auth.stale_request")
         if not self._nonce_store.consume(
@@ -131,6 +141,7 @@ def _validate_request_shape(envelope: SignedRequest) -> None:
         request.principal_id,
         request.tool,
         request.nonce,
+        request.session_id,
     )
     if any(not isinstance(value, str) or not value or len(value) > 256 for value in strings):
         raise AuthenticationError("auth.invalid_request_shape")

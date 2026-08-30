@@ -45,6 +45,13 @@ class ApprovalAuthorityTests(unittest.TestCase):
         with self.assertRaisesRegex(ApprovalError, "approval.policy_mismatch"):
             self.authority.verify_and_consume(receipt, decision(version="policy-2"), now=NOW + 1)
 
+    def test_receipt_is_bound_to_session_context(self) -> None:
+        current = replace(decision(), context_digest="b" * 64)
+        receipt = self.authority.issue(current, approver_id="reviewer-1", now=NOW)
+        changed = replace(current, context_digest="c" * 64)
+        with self.assertRaisesRegex(ApprovalError, "approval.context_mismatch"):
+            self.authority.verify_and_consume(receipt, changed, now=NOW + 1)
+
     def test_expired_receipt_is_rejected(self) -> None:
         receipt = self.authority.issue(
             decision(),

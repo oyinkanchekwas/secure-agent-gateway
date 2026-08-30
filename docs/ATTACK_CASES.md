@@ -17,6 +17,13 @@ The test suite exercises inert requests and fixture adapters.
 | Edited audit record | Verification failure | Record hash changes |
 | Over-permissive policy contract | Acceptance failure | Unsafe-action prevention falls to zero |
 | Altered contract report | Attestation failure | Report digest no longer matches |
+| Sensitive read followed by outbound send | Deny | Evidence identifies the successful read event |
+| Same actions in separate sessions | Allow | Effects do not cross the session boundary |
+| Failed sensitive read followed by send | Allow | Failed adapters emit no effects |
+| Concurrent read and send | Deny | Session lock commits the read effect before sink policy |
+| Intervening call after approval request | Deny | Session-context digest changes |
+| Removed or weakened sequence rule | Acceptance failure | Trajectory mutation is killed |
+| Undisclosed MCP tool | Protocol error | Adapter rejects it before gateway submission |
 
 Paired permitted cases confirm that each control still admits a request with the required role,
 fields, destination, path, rate allowance, and approval state.

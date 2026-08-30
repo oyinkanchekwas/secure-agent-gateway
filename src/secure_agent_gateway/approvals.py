@@ -23,6 +23,7 @@ class ApprovalReceipt:
     approval_id: str
     request_digest: str
     policy_version: str
+    context_digest: str
     approver_id: str
     issued_at: int
     expires_at: int
@@ -33,6 +34,7 @@ class ApprovalReceipt:
             "approval_id": self.approval_id,
             "request_digest": self.request_digest,
             "policy_version": self.policy_version,
+            "context_digest": self.context_digest,
             "approver_id": self.approver_id,
             "issued_at": self.issued_at,
             "expires_at": self.expires_at,
@@ -79,6 +81,7 @@ class ApprovalAuthority:
             "approval_id": approval_id or str(uuid4()),
             "request_digest": decision.request_digest,
             "policy_version": decision.policy_version,
+            "context_digest": decision.context_digest,
             "approver_id": approver_id,
             "issued_at": issued_at,
             "expires_at": issued_at + ttl_seconds,
@@ -104,6 +107,8 @@ class ApprovalAuthority:
             raise ApprovalError("approval.request_mismatch")
         if receipt.policy_version != decision.policy_version:
             raise ApprovalError("approval.policy_mismatch")
+        if receipt.context_digest != decision.context_digest:
+            raise ApprovalError("approval.context_mismatch")
         if receipt.approver_id not in self._approver_ids:
             raise ApprovalError("approval.approver_denied")
         if observed_now < receipt.issued_at:
