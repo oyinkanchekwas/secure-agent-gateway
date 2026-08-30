@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import hashlib
 import re
 from threading import Lock, RLock
-from typing import Iterator
+from typing import ContextManager, Iterator, Protocol
 
 from secure_agent_gateway.auth import canonical_json
 from secure_agent_gateway.models import Control, PolicyDecision, ToolRequest
@@ -44,11 +44,53 @@ class SessionSnapshot:
         return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
 
 
+class SessionStore(Protocol):
+    def claim_request(
+        self,
+        request_id: str,
+        principal_id: str,
+        *,
+        now: int,
+    ) -> bool: ...
+
+    def serialise(
+        self,
+        principal_id: str,
+        session_id: str,
+    ) -> ContextManager[None]: ...
+
+    def snapshot(self, principal_id: str, session_id: str) -> SessionSnapshot: ...
+
+    def record_success(
+        self,
+        principal_id: str,
+        session_id: str,
+        request_id: str,
+        tool: str,
+        effects: frozenset[str],
+    ) -> SessionEvent: ...
+
+
 class InMemorySessionStore:
     def __init__(self) -> None:
         self._events: dict[tuple[str, str], list[SessionEvent]] = {}
+        self._request_ids: set[str] = set()
         self._session_locks: dict[tuple[str, str], RLock] = {}
         self._guard = Lock()
+
+    def claim_request(
+        self,
+        request_id: str,
+        principal_id: str,
+        *,
+        now: int,
+    ) -> bool:
+        del principal_id, now
+        with self._guard:
+            if request_id in self._request_ids:
+                return False
+            self._request_ids.add(request_id)
+            return True
 
     @contextmanager
     def serialise(self, principal_id: str, session_id: str) -> Iterator[None]:
@@ -151,6 +193,9 @@ class SequencePolicy:
         snapshot: SessionSnapshot,
         base: PolicyDecision,
     ) -> PolicyDecision:
+        if base.control == Control.DENY:
+            return _with_context(base, snapshot.digest)
+
         matches: list[tuple[SequenceRule, tuple[str, ...]]] = []
         for rule in self.rules:
             evidence = rule.match(request, snapshot)
@@ -165,12 +210,19 @@ class SequencePolicy:
             else Control.REQUIRE_APPROVAL
         )
         selected = [(rule, evidence) for rule, evidence in matches if rule.control == selected_control]
+        reason_codes = tuple(rule.reason_code for rule, _ in selected)
+        evidence_fields = tuple(
+            dict.fromkeys(field for _, evidence in selected for field in evidence)
+        )
+        if base.control == Control.REQUIRE_APPROVAL and selected_control == base.control:
+            reason_codes = tuple(dict.fromkeys((*base.reason_codes, *reason_codes)))
+            evidence_fields = tuple(
+                dict.fromkeys((*base.evidence_fields, *evidence_fields))
+            )
         return PolicyDecision(
             control=selected_control,
-            reason_codes=tuple(rule.reason_code for rule, _ in selected),
-            evidence_fields=tuple(
-                dict.fromkeys(field for _, evidence in selected for field in evidence)
-            ),
+            reason_codes=reason_codes,
+            evidence_fields=evidence_fields,
             request_digest=base.request_digest,
             policy_version=base.policy_version,
             context_digest=snapshot.digest,

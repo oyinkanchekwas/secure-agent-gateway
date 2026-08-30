@@ -1,0 +1,191 @@
+{
+  "bounded_check": {
+    "boundaries": [
+      {
+        "changed_index": 1,
+        "permitted_trace": [
+          "customer",
+          "customer",
+          "message"
+        ],
+        "prohibited_trace": [
+          "customer",
+          "secret",
+          "message"
+        ],
+        "requirement_id": "customer-secret-egress"
+      }
+    ],
+    "counterexamples": [],
+    "explored_decisions": 155,
+    "max_events": 3,
+    "metrics": {
+      "evidence_coverage": 1.0,
+      "exact_control_conformance": 1.0,
+      "permitted_action_retention": 1.0,
+      "relational_boundary_coverage": 1.0,
+      "unsafe_action_prevention": 1.0
+    },
+    "passed": true,
+    "policy_version": "bounded-check-v0.3",
+    "sequence_policy_digest": "1d2633e743c3ae6cfb5df576e456091b946ab250aab7be8b259c92b61e245c2f",
+    "suite_digest": "5def1117e70d471b7156eadd7fd6471547d72904e0518e26bc5f6c05658918b9",
+    "thresholds": {
+      "min_evidence_coverage": 1.0,
+      "min_exact_control_conformance": 1.0,
+      "min_permitted_action_retention": 1.0,
+      "min_relational_boundary_coverage": 1.0,
+      "min_unsafe_action_prevention": 1.0
+    }
+  },
+  "bounded_check_digest": "b46cb5d76263b2fd91407c64d9a6f9fb5bf88839549eb7cd98019c5ee82ad0f2",
+  "mutation_check": {
+    "baseline_report_digest": "b46cb5d76263b2fd91407c64d9a6f9fb5bf88839549eb7cd98019c5ee82ad0f2",
+    "killed": 7,
+    "mutation_score": 1.0,
+    "outcomes": [
+      {
+        "counterexample": {
+          "actual_control": "allow",
+          "expected_control": "deny",
+          "missing_evidence_fields": [
+            "session.events.model-1-customer.effects.data.customer",
+            "session.events.model-2-secret.effects.data.secret",
+            "tool"
+          ],
+          "property_name": "evidence",
+          "requirement_id": "customer-secret-egress",
+          "trace": [
+            "customer",
+            "secret",
+            "message"
+          ]
+        },
+        "killed": true,
+        "mutant_id": "customer-secret-egress:disabled",
+        "mutation": "disabled",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "counterexample": {
+          "actual_control": "require_approval",
+          "expected_control": "deny",
+          "missing_evidence_fields": [],
+          "property_name": "exact_control",
+          "requirement_id": "customer-secret-egress",
+          "trace": [
+            "customer",
+            "secret",
+            "message"
+          ]
+        },
+        "killed": true,
+        "mutant_id": "customer-secret-egress:control_weakened",
+        "mutation": "control_weakened",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "counterexample": {
+          "actual_control": "allow",
+          "expected_control": "deny",
+          "missing_evidence_fields": [
+            "session.events.model-1-customer.effects.data.customer",
+            "session.events.model-2-secret.effects.data.secret",
+            "tool"
+          ],
+          "property_name": "evidence",
+          "requirement_id": "customer-secret-egress",
+          "trace": [
+            "customer",
+            "secret",
+            "message"
+          ]
+        },
+        "killed": true,
+        "mutant_id": "customer-secret-egress:history_window_reduced",
+        "mutation": "history_window_reduced",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "counterexample": {
+          "actual_control": "deny",
+          "expected_control": "allow",
+          "missing_evidence_fields": [],
+          "property_name": "availability",
+          "requirement_id": "permitted-use",
+          "trace": [
+            "secret",
+            "message"
+          ]
+        },
+        "killed": true,
+        "mutant_id": "customer-secret-egress:required_effect_removed:data.customer",
+        "mutation": "required_effect_removed:data.customer",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "counterexample": {
+          "actual_control": "deny",
+          "expected_control": "allow",
+          "missing_evidence_fields": [],
+          "property_name": "availability",
+          "requirement_id": "permitted-use",
+          "trace": [
+            "customer",
+            "message"
+          ]
+        },
+        "killed": true,
+        "mutant_id": "customer-secret-egress:required_effect_removed:data.secret",
+        "mutation": "required_effect_removed:data.secret",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "counterexample": {
+          "actual_control": "allow",
+          "expected_control": "deny",
+          "missing_evidence_fields": [
+            "session.events.model-1-customer.effects.data.customer",
+            "session.events.model-2-secret.effects.data.secret",
+            "tool"
+          ],
+          "property_name": "evidence",
+          "requirement_id": "customer-secret-egress",
+          "trace": [
+            "customer",
+            "secret",
+            "post"
+          ]
+        },
+        "killed": true,
+        "mutant_id": "customer-secret-egress:target_removed:post_results",
+        "mutation": "target_removed:post_results",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "counterexample": {
+          "actual_control": "allow",
+          "expected_control": "deny",
+          "missing_evidence_fields": [
+            "session.events.model-1-customer.effects.data.customer",
+            "session.events.model-2-secret.effects.data.secret",
+            "tool"
+          ],
+          "property_name": "evidence",
+          "requirement_id": "customer-secret-egress",
+          "trace": [
+            "customer",
+            "secret",
+            "message"
+          ]
+        },
+        "killed": true,
+        "mutant_id": "customer-secret-egress:target_removed:send_message",
+        "mutation": "target_removed:send_message",
+        "rule_id": "customer-secret-egress"
+      }
+    ],
+    "survived": 0
+  },
+  "mutation_check_digest": "d23e078db347475648bd29db5fdec088b6ce1aa4b71ed995c6d93d1e1e07f604"
+}

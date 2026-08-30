@@ -18,7 +18,8 @@ A `SequenceRule` contains:
 - an optional history window measured in successful events.
 
 When a rule matches, its evidence fields point to the prior request that supplied each effect. A
-denial takes precedence if several rules match the same call.
+denial takes precedence if several rules match the same call. Sequence evaluation cannot weaken a
+denial produced by role, schema, rate, path, host, or secret checks.
 
 Session history is keyed by authenticated principal and session handle. Calls sharing that key are
 serialised through policy evaluation and effect recording, preventing a later sink from passing
@@ -79,6 +80,7 @@ Effect labels are registered by trusted host code. The gateway does not infer th
 tool output. Static labels may over-approximate what a particular call returned, so contracts should
 include benign sequences that expose unnecessary interventions.
 
-The in-memory session store has no expiry or size bound. Long-running services need retention rules,
-a transactional shared store, and policy-version migration. Session handles must be opaque and
-checked against caller authority on every request.
+The in-memory session store has no expiry or size bound. `SQLiteSessionStore` supplies shared
+transactional ordering, persistent request claims, and persistent successful effects. It has no
+retention policy or policy-version migration. Session handles must be opaque and checked against
+caller authority on every request.

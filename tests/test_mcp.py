@@ -4,7 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from secure_agent_gateway.mcp import MCPGatewayAdapter, MCPProtocolError
+from secure_agent_gateway.mcp import MCPGatewayAdapter, MCPProtocolError, _protocol_result
+from secure_agent_gateway.models import Control, GatewayResult, PolicyDecision
 
 from tests.support import AUTH_KEY, NOW, make_gateway
 
@@ -20,7 +21,9 @@ class MCPGatewayAdapterTests(unittest.TestCase):
             signing_secret=AUTH_KEY,
             principal_id="agent-1",
             session_handle="session-1",
-            allowed_tools=frozenset({"search_docs", "post_results"}),
+            allowed_tools=frozenset(
+                {"search_docs", "post_results", "broken_adapter"}
+            ),
             clock=lambda: NOW,
             identifier_factory=lambda: next(identifiers),
         )
@@ -34,9 +37,9 @@ class MCPGatewayAdapterTests(unittest.TestCase):
         self.assertEqual(result["cacheScope"], "private")
         self.assertEqual(
             [tool["name"] for tool in result["tools"]],
-            ["post_results", "search_docs"],
+            ["broken_adapter", "post_results", "search_docs"],
         )
-        search = result["tools"][1]
+        search = result["tools"][2]
         self.assertFalse(search["inputSchema"]["additionalProperties"])
         self.assertEqual(search["inputSchema"]["required"], ["query"])
 
@@ -69,6 +72,37 @@ class MCPGatewayAdapterTests(unittest.TestCase):
             )
         self.assertTrue(result.protocol_result["isError"])
         self.assertEqual(result.gateway_result.error_code, "network.host_denied")
+        self.assertIn("denied by gateway policy", str(result.protocol_result))
+
+    def test_adapter_failure_is_not_reported_as_a_policy_denial(self) -> None:
+        with TemporaryDirectory() as directory:
+            adapter, _ = self.make_adapter(directory)
+            result = adapter.call_tool("broken_adapter", {})
+        rendered = str(result.protocol_result)
+        self.assertTrue(result.protocol_result["isError"])
+        self.assertEqual(result.gateway_result.status, "execution_failed")
+        self.assertIn("failed in the registered adapter", rendered)
+        self.assertNotIn("denied by gateway policy", rendered)
+
+    def test_uncertain_execution_has_a_distinct_host_message(self) -> None:
+        decision = PolicyDecision(
+            control=Control.ALLOW,
+            reason_codes=("policy.allowed",),
+            evidence_fields=(),
+            request_digest="a" * 64,
+            policy_version="test-policy",
+        )
+        rendered = _protocol_result(
+            GatewayResult(
+                status="execution_uncertain",
+                decision=decision,
+                error_code="state.commit_failed",
+            )
+        )
+
+        self.assertTrue(rendered["isError"])
+        self.assertIn("outcome is uncertain", str(rendered))
+        self.assertNotIn("denied by gateway policy", str(rendered))
 
     def test_pending_approval_identifier_stays_in_the_host_result(self) -> None:
         with TemporaryDirectory() as directory:

@@ -406,7 +406,7 @@ class SequenceMutationAnalyser:
         )
         if not baseline.passed:
             raise ValueError("baseline trajectory contracts must pass before mutation analysis")
-        mutants = _generate_mutants(self._sequence_policy)
+        mutants = generate_sequence_policy_mutants(self._sequence_policy)
         if not mutants:
             raise ValueError("sequence policy produced no supported mutations")
         outcomes: list[MutationOutcome] = []
@@ -439,7 +439,9 @@ class SequenceMutationAnalyser:
         )
 
 
-def _generate_mutants(policy: SequencePolicy) -> tuple[SequencePolicyMutant, ...]:
+def generate_sequence_policy_mutants(
+    policy: SequencePolicy,
+) -> tuple[SequencePolicyMutant, ...]:
     mutants: list[SequencePolicyMutant] = []
     for rule in policy.rules:
         mutants.append(
