@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools==83.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secure-agent-gateway"
+version = "0.1.0"
+description = "Policy enforcement and request-bound approvals for coding-agent tool calls"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Oyinkansola Onwuchekwa" }
+]
+keywords = [
+  "coding agents",
+  "tool security",
+  "approval control",
+  "audit logging",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Repository = "https://github.com/oyinkanchekwas/secure-agent-gateway"
+Issues = "https://github.com/oyinkanchekwas/secure-agent-gateway/issues"
+
+[project.scripts]
+secure-agent-gateway = "secure_agent_gateway.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
