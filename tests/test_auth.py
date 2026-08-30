@@ -43,6 +43,15 @@ class AuthenticatorTests(unittest.TestCase):
         with self.assertRaisesRegex(AuthenticationError, "auth.invalid_signature"):
             self.authenticator.authenticate(changed, now=NOW)
 
+    def test_changed_session_breaks_signature(self) -> None:
+        envelope = sign(make_request())
+        changed = replace(
+            envelope,
+            request=replace(envelope.request, session_id="another-session"),
+        )
+        with self.assertRaisesRegex(AuthenticationError, "auth.invalid_signature"):
+            self.authenticator.authenticate(changed, now=NOW)
+
     def test_stale_signed_request_is_rejected(self) -> None:
         envelope = sign(make_request(issued_at=NOW - 301))
         with self.assertRaisesRegex(AuthenticationError, "auth.stale_request"):
@@ -117,6 +126,18 @@ class AuthenticatorTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "map key"):
             Authenticator({"different-key": credential})
+
+    def test_session_scoped_credential_rejects_another_session(self) -> None:
+        credential = PrincipalCredential(
+            key_id="agent-key",
+            principal=Principal("agent-1", frozenset({"researcher"})),
+            secret=AUTH_KEY,
+            allowed_session_ids=frozenset({"session-1"}),
+        )
+        authenticator = Authenticator({"agent-key": credential})
+        envelope = sign(make_request(session_id="session-2"))
+        with self.assertRaisesRegex(AuthenticationError, "auth.session_mismatch"):
+            authenticator.authenticate(envelope, now=NOW)
 
 
 if __name__ == "__main__":

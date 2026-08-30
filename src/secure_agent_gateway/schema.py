@@ -15,11 +15,14 @@ class FieldSpec:
     minimum: float | None = None
     maximum: float | None = None
     item_kind: str | None = None
+    description: str | None = None
 
     def __post_init__(self) -> None:
         supported = {"array", "boolean", "integer", "number", "object", "string"}
         if self.kind not in supported:
             raise ValueError(f"unsupported field kind: {self.kind}")
+        if self.description is not None and not self.description.strip():
+            raise ValueError("field description cannot be blank")
         if self.item_kind is not None and self.item_kind not in supported:
             raise ValueError(f"unsupported item kind: {self.item_kind}")
         if self.max_length is not None and self.max_length < 0:

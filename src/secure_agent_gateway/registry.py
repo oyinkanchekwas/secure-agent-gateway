@@ -24,12 +24,23 @@ class ToolSpec:
     host_rules: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
     rate_limit: RateLimit = field(default_factory=lambda: RateLimit(60, 60))
     credential_alias: str | None = None
+    emitted_effects: frozenset[str] = frozenset()
+    title: str | None = None
+    description: str | None = None
 
     def __post_init__(self) -> None:
         if not re.fullmatch(r"[a-z][a-z0-9_.-]{0,127}", self.name) or not self.allowed_roles:
             raise ValueError("tool name and allowed roles are required")
+        if self.title is not None and not self.title.strip():
+            raise ValueError("tool title cannot be blank")
+        if self.description is not None and not self.description.strip():
+            raise ValueError("tool description cannot be blank")
         object.__setattr__(self, "fields", MappingProxyType(dict(self.fields)))
         object.__setattr__(self, "allowed_roles", frozenset(self.allowed_roles))
+        effects = frozenset(self.emitted_effects)
+        if any(not re.fullmatch(r"[a-z][a-z0-9_.:-]{0,127}", effect) for effect in effects):
+            raise ValueError("emitted effects must use stable identifiers")
+        object.__setattr__(self, "emitted_effects", effects)
         object.__setattr__(
             self,
             "path_rules",

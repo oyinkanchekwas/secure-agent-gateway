@@ -27,6 +27,12 @@ from secure_agent_gateway.models import (
 from secure_agent_gateway.policy import PolicyEngine
 from secure_agent_gateway.registry import RegisteredTool
 from secure_agent_gateway.secrets import SecretProvider
+from secure_agent_gateway.session import (
+    InMemorySessionStore,
+    SequencePolicy,
+    SessionEvent,
+    SessionSnapshot,
+)
 
 
 @dataclass(frozen=True)
@@ -47,6 +53,8 @@ class SecureAgentGateway:
         audit_log: AuditLog,
         secret_provider: SecretProvider | None = None,
         pending_ttl_seconds: int = 900,
+        session_store: InMemorySessionStore | None = None,
+        sequence_policy: SequencePolicy | None = None,
     ) -> None:
         self._authenticator = authenticator
         self._policy = policy
@@ -54,6 +62,9 @@ class SecureAgentGateway:
         self._audit = audit_log
         self._secret_provider = secret_provider
         self._pending_ttl_seconds = pending_ttl_seconds
+        self._sessions = session_store or InMemorySessionStore()
+        self._sequence_policy = sequence_policy or SequencePolicy(())
+        self._sequence_policy.validate_registry(self._policy.registry)
         self._pending: dict[str, PendingCall] = {}
         self._request_ids: set[str] = set()
         self._state_lock = Lock()
@@ -105,35 +116,44 @@ class SecureAgentGateway:
                 error_code="request.duplicate_id",
                 audit_event_id=event_id,
             )
-        decision = self._policy.evaluate(principal, request, now=observed_now)
-        if decision.control == Control.DENY:
-            event_id = self._record(request, decision, status="denied", now=observed_now)
-            return GatewayResult(
-                status="denied",
-                decision=decision,
-                error_code=decision.reason_codes[0],
-                audit_event_id=event_id,
-            )
-        if decision.control == Control.REQUIRE_APPROVAL:
-            with self._state_lock:
-                self._pending[request.request_id] = PendingCall(
-                    request=request,
-                    principal=principal,
+        with self._sessions.serialise(principal.principal_id, request.session_id):
+            snapshot = self._sessions.snapshot(principal.principal_id, request.session_id)
+            decision = self._policy.evaluate(principal, request, now=observed_now)
+            decision = self._sequence_policy.evaluate(request, snapshot, decision)
+            if decision.control == Control.DENY:
+                event_id = self._record(request, decision, status="denied", now=observed_now)
+                return GatewayResult(
+                    status="denied",
                     decision=decision,
-                    created_at=observed_now,
+                    error_code=decision.reason_codes[0],
+                    audit_event_id=event_id,
                 )
-            event_id = self._record(request, decision, status="pending_approval", now=observed_now)
-            return GatewayResult(
-                status="pending_approval",
+            if decision.control == Control.REQUIRE_APPROVAL:
+                with self._state_lock:
+                    self._pending[request.request_id] = PendingCall(
+                        request=request,
+                        principal=principal,
+                        decision=decision,
+                        created_at=observed_now,
+                    )
+                event_id = self._record(
+                    request,
+                    decision,
+                    status="pending_approval",
+                    now=observed_now,
+                )
+                return GatewayResult(
+                    status="pending_approval",
+                    decision=decision,
+                    audit_event_id=event_id,
+                )
+            return self._execute(
+                request=request,
+                principal=principal,
                 decision=decision,
-                audit_event_id=event_id,
+                snapshot=snapshot,
+                now=observed_now,
             )
-        return self._execute(
-            request=request,
-            principal=principal,
-            decision=decision,
-            now=observed_now,
-        )
 
     def resume(
         self,
@@ -196,13 +216,38 @@ class SecureAgentGateway:
                 approval_id=receipt.approval_id,
             )
 
-        return self._execute(
-            request=pending.request,
-            principal=pending.principal,
-            decision=pending.decision,
-            now=observed_now,
-            approval_id=receipt.approval_id,
-        )
+        with self._sessions.serialise(
+            pending.principal.principal_id,
+            pending.request.session_id,
+        ):
+            snapshot = self._sessions.snapshot(
+                pending.principal.principal_id,
+                pending.request.session_id,
+            )
+            if snapshot.digest != pending.decision.context_digest:
+                decision = _approval_denial(pending.decision, "approval.context_changed")
+                event_id = self._record(
+                    pending.request,
+                    decision,
+                    status="denied",
+                    now=observed_now,
+                    approval_id=receipt.approval_id,
+                )
+                return GatewayResult(
+                    status="denied",
+                    decision=decision,
+                    error_code="approval.context_changed",
+                    audit_event_id=event_id,
+                    approval_id=receipt.approval_id,
+                )
+            return self._execute(
+                request=pending.request,
+                principal=pending.principal,
+                decision=pending.decision,
+                snapshot=snapshot,
+                now=observed_now,
+                approval_id=receipt.approval_id,
+            )
 
     def _execute(
         self,
@@ -210,6 +255,7 @@ class SecureAgentGateway:
         request: ToolRequest,
         principal: Principal,
         decision: PolicyDecision,
+        snapshot: SessionSnapshot,
         now: int,
         approval_id: str | None = None,
     ) -> GatewayResult:
@@ -230,6 +276,7 @@ class SecureAgentGateway:
                 approval_id=approval_id,
             )
         current = self._policy.revalidate(principal, request)
+        current = self._sequence_policy.evaluate(request, snapshot, current)
         if current.control == Control.DENY:
             event_id = self._record(
                 request,
@@ -273,12 +320,20 @@ class SecureAgentGateway:
                 audit_event_id=event_id,
                 approval_id=approval_id,
             )
+        session_event = self._sessions.record_success(
+            principal.principal_id,
+            request.session_id,
+            request.request_id,
+            request.tool,
+            registered.spec.emitted_effects,
+        )
         event_id = self._record(
             request,
             decision,
             status="succeeded",
             now=now,
             approval_id=approval_id,
+            session_event=session_event,
         )
         return GatewayResult(
             status="succeeded",
@@ -309,10 +364,12 @@ class SecureAgentGateway:
         now: int,
         approval_id: str | None = None,
         include_arguments: bool = True,
+        session_event: SessionEvent | None = None,
     ) -> str:
         event: dict[str, Any] = {
             "request_id": request.request_id,
             "principal_id": request.principal_id,
+            "session_id": request.session_id,
             "tool": request.tool,
             "arguments": self._audit_arguments(request) if include_arguments else "[UNTRUSTED]",
             "control": decision.control.value,
@@ -320,10 +377,14 @@ class SecureAgentGateway:
             "evidence_fields": list(decision.evidence_fields),
             "request_digest": decision.request_digest,
             "policy_version": decision.policy_version,
+            "context_digest": decision.context_digest,
             "status": status,
         }
         if approval_id is not None:
             event["approval_id"] = approval_id
+        if session_event is not None:
+            event["session_sequence"] = session_event.sequence
+            event["emitted_effects"] = sorted(session_event.effects)
         return self._audit.append(event, timestamp=now)
 
     def _audit_arguments(self, request: ToolRequest) -> dict[str, Any]:
@@ -343,6 +404,7 @@ def _approval_denial(decision: PolicyDecision, code: str) -> PolicyDecision:
         evidence_fields=("approval",),
         request_digest=decision.request_digest,
         policy_version=decision.policy_version,
+        context_digest=decision.context_digest,
     )
 
 
@@ -373,5 +435,6 @@ def _snapshot_envelope(envelope: SignedRequest) -> SignedRequest:
         arguments=payload["arguments"],
         issued_at=payload["issued_at"],
         nonce=payload["nonce"],
+        session_id=payload["session_id"],
     )
     return SignedRequest(key_id=envelope.key_id, request=request, signature=envelope.signature)

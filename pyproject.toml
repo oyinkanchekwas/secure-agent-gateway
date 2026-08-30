@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secure-agent-gateway"
-version = "0.1.0"
-description = "Policy enforcement and request-bound approvals for coding-agent tool calls"
+version = "0.2.0"
+description = "Sequence-aware policy enforcement and assurance for agent tool calls"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 - 2026-08-31
+
+- Added signed session identifiers and optional credential-to-session binding.
+- Added sequence rules over effects from successful tool calls.
+- Added per-session serialisation and session-bound approval receipts.
+- Added paired trajectory contracts with intervention and evidence metrics.
+- Added sequence-policy mutation analysis and a checked assurance report.
+- Added an MCP host adapter for the `2026-07-28` tool result format.
+
 ## 0.1.0 - 2026-08-31
 
 - Added signed request envelopes with replay checks and principal binding.

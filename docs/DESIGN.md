@@ -19,11 +19,15 @@ tool
 arguments
 issued_at
 nonce
+session_id
 ```
 
 The key identifier and request are signed together with HMAC-SHA-256. Authentication checks the
 signature before principal binding, clock skew, and nonce consumption. The in-memory nonce store
 rejects a second use of the same key and nonce.
+
+The session identifier is part of the signed request. A credential can be restricted to an explicit
+set of session identifiers.
 
 ## Policy order
 
@@ -35,15 +39,21 @@ Policy evaluation follows this order:
 4. Rate consumption.
 5. Filesystem-root and HTTPS-host checks.
 6. Approval selection for destructive or configured operations.
+7. Sequence evaluation against successful prior events in the same principal session.
 
 Each decision records machine-readable reason codes and the fields that caused it. Adapters receive
 only requests that reach `allow` or carry a valid approval receipt.
 
+Successful adapter calls append declared effects to the session history. Evaluation and effect
+recording share a per-session lock, so concurrent calls cannot observe a partially committed
+sequence.
+
 ## Request-bound approval
 
-The first pass stores an authenticated pending call. An approver signs its request digest and policy
-version with an expiry and one-use identifier. Resumption verifies and consumes the receipt while
-holding the pending-state lock. Competing valid receipts therefore produce one adapter execution.
+The first pass stores an authenticated pending call. An approver signs its request digest, policy
+version, session-context digest, expiry, and one-use identifier. Resumption verifies and consumes
+the receipt while holding the pending-state lock. It then checks the current session history under
+the session lock. Competing valid receipts therefore produce one adapter execution.
 
 The signing authority must remain outside agent control. An approval service can wrap the supplied
 `ApprovalAuthority` interface while keeping its key in a managed secret store.
@@ -75,3 +85,7 @@ Reports retain case-level decisions and evidence fields, then calculate preventi
 evidence coverage, exact control accuracy, and unnecessary intervention. A report digest binds those
 results to the policy version and suite digest. This acceptance layer is separate from request-time
 rate state.
+
+Paired trajectory contracts apply the same controlled-pair rule to multi-call workflows. They stop
+at the first intervention and record its index and causal session evidence. Mutation analysis tests
+whether the suite notices removed or weakened sequence rules.

@@ -7,6 +7,7 @@
 - Outbound destinations and transmitted data.
 - Server-held credentials.
 - Approval decisions and audit records.
+- Session history and sequence-policy decisions.
 - Service availability within configured rate limits.
 
 ## Attacker capabilities
@@ -24,21 +25,24 @@ its roles. The attacker may inspect returned tool output.
 | Unregistered capability | Tool registry and role allowlist |
 | Malformed parameters | Closed field set and runtime type checks |
 | Filesystem escape | Absolute-path requirement and resolved-root containment |
-| Outbound exfiltration | HTTPS requirement and exact host allowlist |
+| Outbound exfiltration | HTTPS requirement, exact host allowlist, and effect-to-sink sequence rules |
 | Agent-supplied credentials | Credential-field rejection and server-selected aliases |
-| Destructive operation | Request-bound, expiring, one-use approval receipt |
+| Destructive operation | Request-bound, session-bound, expiring, one-use approval receipt |
+| Concurrent sequence bypass | Per-principal and per-session serialisation |
+| Session substitution | Signed session handle and optional credential-to-session binding |
 | Repeated calls | Per-principal and per-tool sliding window |
 | Audit modification | Redaction and hash-linked records |
 
 ## Assumptions
 
-The host protects signing keys and policy configuration. Adapter code is reviewed and runs with the
-minimum operating-system permissions needed for its task. Approvers authenticate outside the agent
-session. System time is trustworthy enough for request and receipt expiry. Filesystem adapters use
-race-safe operating-system calls after the gateway path check.
+The host protects signing keys, policy configuration, effect labels, and session handles. Adapter
+code is reviewed and runs with the minimum operating-system permissions needed for its task.
+Approvers authenticate outside the agent session. System time is trustworthy enough for request and
+receipt expiry. Filesystem adapters use race-safe operating-system calls after the gateway path
+check. Host-issued session handles are opaque, time-bounded, and checked against caller authority.
 
 ## Outside this release
 
 This release does not sandbox adapters, distribute keys, rotate credentials, terminate TLS, or
-provide a shared state store. It does not inspect the semantic content of permitted payloads. Host
-applications must add controls for those responsibilities.
+provide a shared state store. It does not infer effects from tool output or inspect the semantic
+content of permitted payloads. Host applications must add controls for those responsibilities.
