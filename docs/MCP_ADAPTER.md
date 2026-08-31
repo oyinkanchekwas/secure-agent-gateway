@@ -1,10 +1,10 @@
 # MCP host adapter
 
 `MCPGatewayAdapter` maps authorised MCP tool calls to signed gateway requests. It targets the
-`2026-07-28` MCP tool result format and has no transport dependency.
+`2026-07-28` MCP tool result format and is transport-independent.
 
-The class is an integration boundary for an MCP host or server implementation. It does not implement
-JSON-RPC routing, Streamable HTTP, stdio framing, OAuth, discovery, or protocol negotiation.
+The MCP host or server supplies JSON-RPC routing, Streamable HTTP, stdio framing, OAuth, discovery,
+and protocol negotiation. `MCPGatewayAdapter` handles the gateway integration boundary.
 
 ## Host responsibilities
 
@@ -16,10 +16,9 @@ Before constructing an adapter, the host must:
 - choose the tools visible to the caller; and
 - retain approval receipts outside model-controlled content.
 
-MCP no longer provides a transport session. The July 2026 specification treats state handles as
-ordinary tool data and requires authorisation checks on each call. The adapter accepts a
-`session_handle` from trusted host configuration and signs it into every gateway request. It never
-accepts a replacement handle inside tool arguments.
+The July 2026 specification treats state handles as ordinary tool data and requires authorisation
+checks on each call. Trusted host configuration supplies `session_handle`, which the adapter signs
+into every gateway request. The tool argument schema excludes replacement handles.
 
 A surrounding MCP server may expose its opaque handle as an ordinary argument, as the specification
 describes. That server must validate the handle against the authenticated caller, remove it from the
@@ -31,8 +30,8 @@ registered tool arguments, and then select the corresponding adapter context.
 properties, carries required fields, and translates supported length, numeric, choice, and array
 constraints from `FieldSpec`.
 
-The result uses `cacheScope: private`, since visible tools may depend on caller authority. A host can
-set the freshness period through `list_ttl_ms`.
+The result uses `cacheScope: private`, since visible tools may depend on caller authority. A host
+can set the freshness period through `list_ttl_ms`.
 
 ## Tool calls
 

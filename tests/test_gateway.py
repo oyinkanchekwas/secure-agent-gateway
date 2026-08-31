@@ -355,7 +355,7 @@ class SecureAgentGatewayTests(unittest.TestCase):
         self.assertEqual(result.error_code, "auth.request_too_large")
         self.assertEqual(records[-1]["event"]["arguments"], "[UNTRUSTED]")
 
-    def test_server_credential_reaches_adapter_and_not_audit_log(self) -> None:
+    def test_server_credential_stays_out_of_audit_after_adapter_use(self) -> None:
         with TemporaryDirectory() as directory:
             base = Path(directory)
             fixture = make_gateway(base)

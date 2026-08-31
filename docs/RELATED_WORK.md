@@ -58,7 +58,7 @@ Tool-call gateways already cover much of the enforcement base used here.
   to test whether an agent action depends on authorised or unauthorised context.
 - [Safeguarding LLM Agents from Misalignment through Provenance Analysis](https://arxiv.org/abs/2607.01236)
   measures unnecessary interventions on aligned agent traces. The contract report uses the same
-  operational concern when it measures permitted requests that do not receive `allow`.
+  operational concern when it measures interventions on permitted requests.
 - The [MCP 2026-07-28 tools specification](https://github.com/modelcontextprotocol/modelcontextprotocol/blob/main/docs/specification/2026-07-28/server/tools.mdx)
   defines deterministic tool discovery, private caching, complete results, and explicit state
   handles for cross-call workflows.
@@ -80,10 +80,11 @@ boundaries, and tests whether the independent model catches supported policy mut
 
 The v0.4 change checker compares two sequence-policy versions and the flow model in one search. Its
 state space is the union of branches reachable under either policy. This permits inspection of
-downstream actions that exist only after a policy change, while the report keeps prior defects,
-proposal defects, regressions, and repairs separate.
+downstream actions opened by a policy change. The report keeps prior defects, proposal defects,
+regressions, and repairs separate.
 
 The v0.5 synthesiser starts from an explicit flow model and declared tool effects. It generates a
 controlled trace pair for each causal source effect, plus a persistence pair for the requirement's
-history window. Its output is a policy test suite, not a generated policy or a model-behaviour
-benchmark. Mutation analysis checks whether those generated pairs detect supported rule faults.
+history window. Its output is a policy test suite. Policy generation and model-behaviour
+benchmarking lie outside the component's scope. Mutation analysis checks whether those generated
+pairs detect supported rule faults.

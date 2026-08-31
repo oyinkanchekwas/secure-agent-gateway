@@ -7,10 +7,11 @@
 - Added boundary probes that detect one-event contractions of finite history windows.
 - Reported missing effects, shadowed requirements, and non-isolatable conditions as gaps.
 - Counted equally minimal probe pairs and recorded each event's causal contribution.
-- Compiled generated probes into trajectory contracts without executing adapters.
+- Compiled generated probes into trajectory contracts with adapter execution disabled.
 - Bound tool effect declarations and search limits into the synthesis digest.
 - Capped padded history traces before allocation.
 - Added an example whose generated suite detects all supported sequence-rule mutations.
+- Expanded the prose gate to reject mirrored contrast patterns.
 
 ## 0.4.0 - 2026-08-31
 

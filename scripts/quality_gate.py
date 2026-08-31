@@ -50,6 +50,28 @@ BANNED_PROSE = (
     re.compile(r"\b(?:safe way to describe|not novel|next useful step)\b", re.IGNORECASE),
 )
 
+MIRRORED_PROSE = (
+    re.compile(r"\bnot\b[^.!?\n]{0,120}\bbut\b", re.IGNORECASE),
+    re.compile(r",\s*not\b", re.IGNORECASE),
+    re.compile(r"\b(?:instead of|not only)\b", re.IGNORECASE),
+    re.compile(r"\b(?:not merely|not simply|not another)\b", re.IGNORECASE),
+    re.compile(r",\s*(?:while|though|whereas)\b", re.IGNORECASE),
+    re.compile(r"\bmore than\b[^.!?\n]{0,120},\s*(?:it|this|that)\b", re.IGNORECASE),
+    re.compile(r"\bthe real\b[^.!?\n]{0,120}\bis\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:does|do|is|are|was|were|has|have|had|can|could|will|would)\s+"
+        r"not\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(?:isn['\N{RIGHT SINGLE QUOTATION MARK}]t|aren['\N{RIGHT SINGLE QUOTATION MARK}]t|"
+        r"wasn['\N{RIGHT SINGLE QUOTATION MARK}]t|weren['\N{RIGHT SINGLE QUOTATION MARK}]t|"
+        r"doesn['\N{RIGHT SINGLE QUOTATION MARK}]t|don['\N{RIGHT SINGLE QUOTATION MARK}]t|"
+        r"can['\N{RIGHT SINGLE QUOTATION MARK}]t|won['\N{RIGHT SINGLE QUOTATION MARK}]t)\s+just\b",
+        re.IGNORECASE,
+    ),
+)
+
 
 def main() -> int:
     errors: list[str] = []
@@ -71,6 +93,12 @@ def main() -> int:
                 match = pattern.search(text)
                 if match:
                     errors.append(f"{relative}: prohibited prose found: {match.group(0)!r}")
+            for pattern in MIRRORED_PROSE:
+                match = pattern.search(text)
+                if match:
+                    errors.append(
+                        f"{relative}: mirrored contrast found: {match.group(0)!r}"
+                    )
     if errors:
         sys.stderr.write("\n".join(errors) + "\n")
         return 1
