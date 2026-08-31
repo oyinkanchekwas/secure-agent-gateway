@@ -21,7 +21,7 @@ Tool-call gateways already cover much of the enforcement base used here.
 - [Vellaveto](https://github.com/paolovella/vellaveto) combines policy checks, taint tracking,
   behavioural analysis, and approval controls for MCP traffic.
 - [AARM](https://github.com/christian-posta/agent-governance-agw) demonstrates agent identity,
-  permissions, intent validation, and runtime interception with an AI gateway.
+  permissions, intent validation, and runtime interception with an agent gateway.
 - [Open Agent Passport](https://arxiv.org/abs/2603.20953) signs per-call authorisation decisions and
   verifies them at the tool boundary.
 - [Intent-Governed Access Control](https://arxiv.org/abs/2606.22916) binds permissions to a declared
