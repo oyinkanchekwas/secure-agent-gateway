@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0 - 2026-08-31
+
+- Added bounded comparison of old and proposed sequence policies.
+- Explored the union of states reachable under either policy.
+- Separated old-policy defects, proposal defects, regressions, and corrections.
+- Classified failed candidate-only paths as regressions caused by newly reachable state.
+- Added policy reachability to each witness so counterfactual controls remain identifiable.
+- Bound the event limit and decision budget into the signed report.
+- Added shortest witnesses for safety, access, control strength, and causal evidence.
+- Reported requirements left untested by the chosen invocation alphabet or depth.
+- Added signed attestations that bind the full case-level change report.
+
 ## 0.3.1 - 2026-08-31
 
 - Delayed success results and audit records until session transaction commit.

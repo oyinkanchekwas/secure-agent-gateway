@@ -26,6 +26,12 @@ Tool-call gateways already cover much of the enforcement base used here.
   verifies them at the tool boundary.
 - [Intent-Governed Access Control](https://arxiv.org/abs/2606.22916) binds permissions to a declared
   intent and narrows authority within a session.
+- [Bounded Agents](https://arxiv.org/abs/2608.15888) carries restricted scope and budgets through
+  delegation chains, with composition checks over accumulated session state.
+- [SentinelAgent](https://arxiv.org/abs/2604.02767) defines mechanically checked delegation-chain
+  properties and a separate delegation authority service.
+- [When Tool Outputs Become Commands](https://arxiv.org/abs/2608.27146) separates action-origin
+  provenance from execution authority across multi-step tool use.
 - [Solver-Aided Tool Policy Compliance for LLM Agents](https://arxiv.org/abs/2603.20449) expresses
   tool policy as declarative constraints and checks candidate calls with a solver.
 - [Agent-C](https://arxiv.org/abs/2512.23738) defines temporal constraints for agent workflows and
@@ -36,6 +42,12 @@ Tool-call gateways already cover much of the enforcement base used here.
   durable agent execution and replay on Temporal.
 - [Temper](https://github.com/nerdsane/temper) applies model checking to agent behaviour described
   by a formal specification.
+- [Semantic differencing for models](https://www.cs.tau.ac.il/~maozs/papers/diff-framework-models15.pdf)
+  includes change-impact analysis for access-control policies and witness-based semantic diffs.
+- [IronSpec](https://www.usenix.org/conference/osdi24/presentation/goldweber) tests formal
+  specifications with sanity checks, proof obligations, and mutation analysis.
+- [Stateful Governance for Concurrent Agentic Systems](https://arxiv.org/abs/2608.02764) defines
+  policy-state serialisability for agent actions over shared mutable state.
 - [Safeguarding LLM Agents from Misalignment through Provenance Analysis](https://arxiv.org/abs/2607.01236)
   measures unnecessary interventions on aligned agent traces. The contract report uses the same
   operational concern when it measures permitted requests that do not receive `allow`.
@@ -57,3 +69,8 @@ caught before release.
 The v0.3 checker compares a runtime sequence policy with a separately authored flow model. It
 searches a finite state space for the shortest failed trace, measures controlled safety and access
 boundaries, and tests whether the independent model catches supported policy mutations.
+
+The v0.4 change checker compares two sequence-policy versions and the flow model in one search. Its
+state space is the union of branches reachable under either policy. This permits inspection of
+downstream actions that exist only after a policy change, while the report keeps prior defects,
+proposal defects, regressions, and repairs separate.

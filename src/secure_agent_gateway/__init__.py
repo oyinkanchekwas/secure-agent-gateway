@@ -29,6 +29,14 @@ from secure_agent_gateway.model_checking import (
 )
 from secure_agent_gateway.models import Control, Principal, RiskLevel, ToolRequest
 from secure_agent_gateway.policy import PolicyEngine
+from secure_agent_gateway.policy_change import (
+    PolicyChangeAttestation,
+    PolicyChangeAttestor,
+    PolicyChangeChecker,
+    PolicyChangeDecision,
+    PolicyChangeReport,
+    PolicyChangeWitness,
+)
 from secure_agent_gateway.registry import ToolRegistry, ToolSpec
 from secure_agent_gateway.schema import FieldSpec
 from secure_agent_gateway.sqlite_store import SQLiteSessionStore
@@ -83,6 +91,12 @@ __all__ = [
     "PairedPolicyContract",
     "PairedTrajectoryContract",
     "PolicyEngine",
+    "PolicyChangeAttestation",
+    "PolicyChangeAttestor",
+    "PolicyChangeChecker",
+    "PolicyChangeDecision",
+    "PolicyChangeReport",
+    "PolicyChangeWitness",
     "PolicyContractRunner",
     "Principal",
     "PrincipalCredential",
@@ -107,4 +121,4 @@ __all__ = [
     "sign_request",
 ]
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"

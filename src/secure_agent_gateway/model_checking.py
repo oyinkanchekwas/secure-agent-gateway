@@ -229,7 +229,7 @@ class BoundedRelationalChecker:
     ) -> BoundedCheckReport:
         alphabet = tuple(sorted(templates, key=lambda item: item.template_id))
         specification = tuple(sorted(requirements, key=lambda item: item.requirement_id))
-        _validate_suite(
+        validate_model_suite(
             self._policy,
             principal,
             alphabet,
@@ -238,18 +238,12 @@ class BoundedRelationalChecker:
             max_decisions,
         )
         active_thresholds = thresholds or BoundedCheckThresholds()
-        suite_payload = {
-            "principal": {
-                "principal_id": principal.principal_id,
-                "roles": sorted(principal.roles),
-            },
-            "templates": [template.to_mapping() for template in alphabet],
-            "requirements": [requirement.to_mapping() for requirement in specification],
-            "max_events": max_events,
-        }
-        suite_digest = hashlib.sha256(
-            canonical_json(suite_payload).encode("utf-8")
-        ).hexdigest()
+        suite_digest = model_suite_digest(
+            principal,
+            alphabet,
+            specification,
+            max_events,
+        )
         decisions: list[CheckedDecision] = []
         frontier: list[tuple[tuple[str, ...], tuple[SessionEvent, ...]]] = [((), ())]
         for _ in range(max_events):
@@ -312,7 +306,11 @@ class BoundedRelationalChecker:
         snapshot = SessionSnapshot(principal.principal_id, request.session_id, events)
         base = self._policy.inspect(principal, request)
         actual = self._sequence_policy.evaluate(request, snapshot, base)
-        expected, matched, evidence = _oracle_decision(template.tool, events, requirements)
+        expected, matched, evidence = evaluate_flow_requirements(
+            template.tool,
+            events,
+            requirements,
+        )
         registered = self._policy.registry.get(template.tool)
         if registered is None:
             raise RuntimeError("validated model-checking tool disappeared")
@@ -439,7 +437,7 @@ class BoundedMutationAnalyser:
         )
 
 
-def _validate_suite(
+def validate_model_suite(
     policy: PolicyEngine,
     principal: Principal,
     templates: tuple[InvocationTemplate, ...],
@@ -489,7 +487,7 @@ def _validate_suite(
             )
 
 
-def _oracle_decision(
+def evaluate_flow_requirements(
     tool: str,
     events: tuple[SessionEvent, ...],
     requirements: tuple[FlowRequirement, ...],
@@ -526,6 +524,24 @@ def _oracle_decision(
         tuple(requirement.requirement_id for requirement, _ in selected),
         tuple(dict.fromkeys(field for _, evidence in selected for field in evidence)),
     )
+
+
+def model_suite_digest(
+    principal: Principal,
+    templates: Sequence[InvocationTemplate],
+    requirements: Sequence[FlowRequirement],
+    max_events: int,
+) -> str:
+    payload = {
+        "principal": {
+            "principal_id": principal.principal_id,
+            "roles": sorted(principal.roles),
+        },
+        "templates": [template.to_mapping() for template in templates],
+        "requirements": [requirement.to_mapping() for requirement in requirements],
+        "max_events": max_events,
+    }
+    return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
 
 
 def _find_boundaries(

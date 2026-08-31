@@ -115,3 +115,15 @@ strict ordering over write concurrency.
 A successful adapter result remains provisional until the session transaction exits. The gateway
 writes the success audit record after commit. Commit failure produces `execution_uncertain`; a
 session-store failure before execution produces `state.unavailable` and a denial.
+
+## Policy change gate
+
+The change checker evaluates the active and proposed sequence policies over one union-state search.
+A branch continues while either policy allows its latest action. Decisions retain separate
+reachability flags, which prevents proposal-only paths from disappearing behind an earlier policy
+difference.
+
+Expected controls and evidence come from `FlowRequirement`, not from either runtime policy. The
+report records old-policy defects, proposal defects, regressions, corrections, and uncovered
+requirements separately. Its digest includes every explored decision, while the default rendering
+keeps the case-level table optional.
