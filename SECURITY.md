@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Security fixes are applied to the current `0.4.x` line while the repository remains in private
+Security fixes are applied to the current `0.5.x` line while the repository remains in private
 development.
 
 ## Reporting

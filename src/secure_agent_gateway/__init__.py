@@ -37,6 +37,14 @@ from secure_agent_gateway.policy_change import (
     PolicyChangeReport,
     PolicyChangeWitness,
 )
+from secure_agent_gateway.probe_synthesis import (
+    CausalContribution,
+    ContrastProbe,
+    ProbeSynthesisGap,
+    ProbeSynthesisReport,
+    RequirementProbeSynthesiser,
+    probe_suite_digest,
+)
 from secure_agent_gateway.registry import ToolRegistry, ToolSpec
 from secure_agent_gateway.schema import FieldSpec
 from secure_agent_gateway.sqlite_store import SQLiteSessionStore
@@ -77,7 +85,9 @@ __all__ = [
     "BoundedMutationReport",
     "BoundedRelationalChecker",
     "CheckedDecision",
+    "CausalContribution",
     "Control",
+    "ContrastProbe",
     "FieldSpec",
     "FlowRequirement",
     "InMemorySessionStore",
@@ -98,10 +108,13 @@ __all__ = [
     "PolicyChangeReport",
     "PolicyChangeWitness",
     "PolicyContractRunner",
+    "ProbeSynthesisGap",
+    "ProbeSynthesisReport",
     "Principal",
     "PrincipalCredential",
     "RiskLevel",
     "RelationalBoundary",
+    "RequirementProbeSynthesiser",
     "SecureAgentGateway",
     "SequenceMutationAnalyser",
     "SequencePolicy",
@@ -118,7 +131,8 @@ __all__ = [
     "TrajectoryContractRunner",
     "TrajectoryReport",
     "TrajectoryThresholds",
+    "probe_suite_digest",
     "sign_request",
 ]
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
