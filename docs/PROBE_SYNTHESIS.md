@@ -1,7 +1,7 @@
 # Causal-temporal probe synthesis
 
 `RequirementProbeSynthesiser` builds policy tests from `FlowRequirement` objects and registered
-invocation templates. It reads local policy objects without executing adapters or editing policy.
+invocation templates. It uses read-only policy evaluation; adapter execution is disabled.
 
 ## Search method
 
@@ -10,7 +10,7 @@ trace is eligible when its declared tool effects cover the requirement's source 
 declared sink produces the expected intervention. Another requirement may intervene first; this is
 reported as a shadowed requirement.
 
-The synthesiser then replaces one source event while holding the remaining events and sink fixed.
+The synthesiser then replaces one source event and holds the remaining events and sink fixed.
 A source-effect probe is accepted when:
 
 - the prohibited trace reaches the expected intervention;
@@ -24,18 +24,18 @@ condition, including cases where another generated pair still exercises the rema
 ## History persistence
 
 A minimum-length trace can leave the latest source event immediately beside the sink. Such a test
-cannot detect a policy whose history window has been narrowed to one event.
+leaves a one-event history contraction undetected.
 
 For a finite window, the synthesiser places the isolated source effect at the oldest visible event.
-The permitted pair removes that effect while retaining the trace length and sink. This detects a
+The permitted pair removes that effect and retains the trace length and sink. This detects a
 one-event contraction at the declared boundary. An unbounded requirement is tested with evidence
 older than the latest action. A missing neutral template or an earlier intervention is recorded as
 a synthesis gap.
 
 ## Causal contribution and ambiguity
 
-Each source event lists the effects that disappear when that event is removed. A minimum-cardinality
-source trace cannot contain an event with no indispensable effect.
+Each source event lists the effects that disappear when that event is removed. Every event in a
+minimum-cardinality source trace supplies at least one indispensable effect.
 
 `isolated_effect_age` records the distance from the changed source event to the sink. For a finite
 history probe, this equals the requirement's declared window.
@@ -67,15 +67,15 @@ mutation = SequenceMutationAnalyser(policy, sequence_policy).run(contracts)
 
 ## Gap codes
 
-- `missing_source_effect`: no template emits a required effect.
-- `missing_sink_template`: no template invokes a declared sink.
+- `missing_source_effect`: a required effect lacks an emitting template.
+- `missing_sink_template`: a declared sink lacks an invocation template.
 - `source_limit_exhausted`: the configured event limit is too small.
 - `trace_limit_exhausted`: a history boundary exceeds the total trace limit.
 - `no_selectable_prohibited_trace`: another requirement intervenes first or changes the control.
-- `non_isolatable_source_effect`: no one-event replacement isolates one source effect.
-- `no_temporal_contrast`: no neutral event can test state persistence.
+- `non_isolatable_source_effect`: supplied replacements fail to isolate one source effect.
+- `no_temporal_contrast`: supplied neutral events fail to test state persistence.
 
-An incomplete report cannot be compiled into contracts.
+Contract compilation requires a complete report.
 
 ## Scope
 

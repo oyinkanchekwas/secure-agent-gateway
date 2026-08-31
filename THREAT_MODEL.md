@@ -13,7 +13,7 @@
 ## Attacker capabilities
 
 An attacker may control an agent prompt, retrieved document, tool arguments, request ordering, and
-repeated call attempts. A compromised agent key permits requests only for the bound principal and
+repeated call attempts. A compromised agent key restricts requests to the bound principal and
 its roles. The attacker may inspect returned tool output.
 
 ## Controls
@@ -49,12 +49,11 @@ outside the runtime policy implementation. An incomplete alphabet or shallow eve
 a flow requirement uncovered; the report names each uncovered requirement.
 
 Probe synthesis assumes that each registered tool's declared effects match its successful adapter
-effects. Generated probes exercise policy evaluation only. They do not establish that adapter code
-emits the declared effects or confines undeclared external changes.
+effects. Generated probes cover policy evaluation. Adapter effect accuracy and undeclared external
+changes remain outside their evidence.
 
-## Outside this release
+## Host responsibilities
 
-This release does not sandbox adapters, distribute keys, rotate credentials, or terminate TLS. It
-does not infer effects from tool output or inspect the semantic content of permitted payloads.
-Pending approvals, nonce windows, and rate counters are not persisted by `SQLiteSessionStore`.
-Host applications must add controls for those responsibilities.
+Host applications supply adapter sandboxing, distributed key management, credential rotation, and
+TLS termination. Effect inference from tool output and semantic payload inspection lie outside this
+release. `SQLiteSessionStore` keeps pending approvals, nonce windows, and rate counters in memory.

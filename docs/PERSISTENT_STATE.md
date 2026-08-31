@@ -6,8 +6,9 @@ local database file. It persists two records:
 - claimed request identifiers, which prevent a repeated identifier after restart; and
 - successful session events, including tool names and declared effects.
 
-The store uses WAL mode, full synchronous writes, foreign-key checks, a busy timeout, and owner-only
-file permissions. Session processing starts with `BEGIN IMMEDIATE`. The transaction remains open
+The store uses WAL mode, full synchronous writes, foreign-key checks, a busy timeout, and
+owner-restricted file permissions. Session processing starts with `BEGIN IMMEDIATE`. The transaction
+remains open
 through snapshot reading, policy evaluation, adapter execution, and successful effect recording.
 Another writer sees the committed order after that transaction ends.
 
@@ -30,15 +31,15 @@ effect and the process stops before recording success. Adapters should use idemp
 provider-side status checks for operations where that ambiguity has consequences.
 
 If an adapter returns and session-state commit then fails, the gateway records
-`execution_uncertain` with `state.commit_failed`. The host must not retry the external action until
-it has checked the provider-side outcome. The original request identifier remains claimed.
+`execution_uncertain` with `state.commit_failed`. The host must check the provider-side outcome
+before any retry. The original request identifier remains claimed.
 
-The gateway writes its `succeeded` audit record only after the enclosing session transaction has
-committed. A transaction failure before adapter execution returns `state.unavailable` and does not
-call the adapter.
+The enclosing session transaction commits before the gateway writes its `succeeded` audit record.
+A pre-execution transaction failure returns `state.unavailable` and leaves the adapter call count
+at zero.
 
 ## Retention
 
-This release has no automatic expiry, compaction, or schema migration command. The database belongs
+The host application owns expiry, compaction, and schema migration. The database belongs
 to the host application. Back-up, retention, and removal procedures need to match its policy and
 audit requirements.

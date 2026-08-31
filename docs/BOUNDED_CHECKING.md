@@ -17,7 +17,7 @@ policy.
 
 The checker explores traces breadth first. An `allow` decision appends the registered tool effects
 and permits another extension. A denial or approval request ends that branch. `max_events` bounds
-trace length, while `max_decisions` stops an unexpectedly large search with an error.
+trace length. `max_decisions` stops an unexpectedly large search with an error.
 
 The report measures:
 
@@ -29,7 +29,7 @@ The report measures:
 
 A relational boundary pairs a prohibited trace with a permitted trace of equal length. The final
 tool is the same and one earlier template changes. This checks whether a policy distinguishes the
-causal source state without blocking the nearby permitted state.
+causal source state and preserves the nearby permitted state.
 
 For each failed property and requirement, the checker keeps the shortest counterexample found by
 the breadth-first search. Counterexamples cover unsafe allowance, unnecessary intervention,
@@ -42,12 +42,12 @@ independent flow requirements against supported policy changes: disabled rules, 
 shortened windows, removed effects, and removed sinks.
 
 A surviving mutation records a gap between the requirement model, invocation alphabet, depth
-bound, and runtime policy. The report does not hide survivors behind an aggregate score.
+bound, and runtime policy. The report lists every survivor beside the aggregate score.
 
 ## Scope
 
-The search covers only fixed arguments in the invocation alphabet. It does not inspect adapter
-source code, model arbitrary tool output, or prove behaviour beyond the configured depth. Runtime
+The search scope comprises fixed arguments in the invocation alphabet. Adapter source code,
+arbitrary tool output, and behaviour beyond the configured depth remain outside the model. Runtime
 effect labels remain trusted declarations from the host application.
 
 Run the checked example:

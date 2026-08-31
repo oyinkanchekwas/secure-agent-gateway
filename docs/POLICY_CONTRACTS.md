@@ -1,13 +1,13 @@
 # Paired policy contracts
 
-A policy can block every call and appear safe while making the agent unusable. It can also admit
+A blanket blocking policy can appear safe and leave the agent unusable. It can also admit
 every ordinary request and miss the prohibited case that motivated the control. Paired policy
 contracts check both outcomes before a policy version is accepted.
 
 Each contract contains a prohibited request, a permitted counterpart, the expected controls, the
-required evidence fields, and the fields changed between the pair. Construction fails when the
-declared changes do not match the requests. Request identifiers, nonces, and issue times are omitted
-from this comparison because they are transport data.
+required evidence fields, and the fields changed between the pair. Construction checks the declared
+changes against the requests and fails on mismatch. Request identifiers, nonces, and issue times are
+omitted from this comparison because they are transport data.
 
 The runner reports:
 
@@ -19,7 +19,7 @@ The runner reports:
 
 Default thresholds require every check to pass. Teams can set lower thresholds explicitly, and the
 selected values remain in the report. Contract evaluation uses `PolicyEngine.inspect`, which applies
-the request and target rules without consuming the live rate counter.
+the request and target rules through a separate rate-counter view.
 
 ## Attestation
 
@@ -36,6 +36,6 @@ Run the example with:
 PYTHONPATH=src python3.11 examples/run_policy_contracts.py
 ```
 
-An attestation records what the configured policy decided on the supplied contract suite. It does
-not prove that the contracts cover every unsafe workflow, or that adapters enforce operating-system
-boundaries.
+An attestation records what the configured policy decided on the supplied contract suite. Its
+evidentiary scope ends at those contracts and the configured policy. Adapter operating-system
+boundaries require separate validation.

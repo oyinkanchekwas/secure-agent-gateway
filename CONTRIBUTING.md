@@ -9,5 +9,5 @@ Run:
 make PYTHON=python3.11 check
 ```
 
-Use inert fixtures. Never commit credentials, private service addresses, copied production logs, or
+Use inert fixtures. Exclude credentials, private service addresses, copied production logs, and
 payloads from real users.

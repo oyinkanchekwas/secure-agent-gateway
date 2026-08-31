@@ -7,7 +7,7 @@ objects.
 ## Union-state search
 
 The checker starts with an empty session and explores tool sequences breadth first. A branch stays
-in the search while either policy permits it. This exposes two kinds of state:
+in the search whenever either policy permits it. This exposes two kinds of state:
 
 - sessions reached by both policies; and
 - sessions opened or closed by the proposal.
@@ -17,7 +17,7 @@ correct an early denial, expose a later tool sequence, and then permit a prohibi
 search evaluates that later boundary and records it as a proposal defect.
 
 Each decision records whether the old policy and the proposal could reach its parent state. Metrics
-for each policy use only that policy's reachable decisions.
+for each policy use that policy's reachable decisions.
 
 ## Four report views
 
@@ -37,8 +37,8 @@ failure removed with a baseline-only path is recorded as a correction. The repor
 requirements that lack a controlled prohibited/permitted boundary at the configured depth.
 
 Every witness carries old-policy and proposal reachability flags. Controls evaluated outside a
-policy's reachable state space remain visible for diagnosis, while the flags prevent them from
-being mistaken for executable behaviour.
+policy's reachable state space remain visible for diagnosis. The flags identify executable
+behaviour.
 
 ## Release decision
 
@@ -62,4 +62,4 @@ The result applies to the supplied templates, requirements, principal, and event
 is represented by registered effect labels. Adapter code and operating-system effects are outside
 the model.
 
-An empty witness list does not compensate for an uncovered requirement. The gate checks both.
+Passing requires acceptable witnesses and complete requirement coverage.

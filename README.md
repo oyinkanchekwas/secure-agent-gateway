@@ -62,8 +62,8 @@ Approval receipts contain the request digest, policy version, session-context di
 identity, issue time, expiry, and a one-use identifier. A changed request, policy version, or
 session history invalidates the receipt.
 
-Tool credentials are configured on the registered adapter. They do not appear in the agent request
-or audit record.
+Registered adapters hold tool credentials. Agent requests and audit records remain free of
+credential values.
 
 ## Paired policy contracts
 
@@ -80,9 +80,10 @@ See [Paired policy contracts](docs/POLICY_CONTRACTS.md) for the data model, metr
 
 ## Sequence assurance
 
-A registered tool may declare stable effects such as `data.customer`. Effects enter session history
-only after the adapter succeeds. A sequence rule can then intervene when a later tool would combine
-with those effects. Decisions identify the earlier event that supplied each causal effect.
+A registered tool may declare stable effects such as `data.customer`. Successful adapter completion
+precedes effect insertion into session history. A sequence rule can then intervene when a later tool
+would combine with those effects. Decisions identify the earlier event that supplied each causal
+effect.
 
 The trajectory runner tests a prohibited sequence beside a minimally changed permitted sequence.
 It checks the full control path, the first intervention, causal evidence, and retained task access.
@@ -100,8 +101,8 @@ The checked report is at
 ## Bounded relational checking
 
 The bounded checker enumerates tool sequences up to a configured depth. Runtime decisions come
-from the gateway policy. Expected decisions come from separate `FlowRequirement` objects, so the
-checker does not use `SequenceRule.match` as its oracle. It records controlled permitted and
+from the gateway policy. Separate `FlowRequirement` objects supply expected decisions and keep the
+oracle independent of `SequenceRule.match`. The checker records controlled permitted and
 prohibited boundaries, and returns the shortest counterexample found for each failed property.
 
 ```bash
@@ -132,12 +133,13 @@ The checked report is at [`reports/v0.4-policy-change.json`](reports/v0.4-policy
 
 `RequirementProbeSynthesiser` converts independent `FlowRequirement` objects into controlled
 trajectory pairs. For each source effect, it finds a shortest prohibited trace and a one-event
-replacement that removes that effect while retaining the others. Where the minimum trace does not
-reach the declared history boundary, a temporal probe pads the trace with neutral events. The
+replacement that removes that effect and retains the others. A temporal probe pads any minimum
+trace ending before the declared history boundary with neutral events. The
 isolated source effect then occupies the oldest visible position.
 
-The synthesiser reports missing source producers, shadowed controls, and conditions that cannot be
-isolated with the supplied invocation alphabet. Equally minimal pairs remain counted in the report.
+The synthesiser reports missing source producers, shadowed controls, and conditions lacking
+one-event isolation in the supplied invocation alphabet. Equally minimal pairs remain counted in
+the report.
 Generated probes compile into `PairedTrajectoryContract` objects and can be checked with the normal
 trajectory runner and mutation analyser. Separate source-depth, trace-length, and candidate limits
 bound the search.
@@ -209,7 +211,7 @@ spec = ToolSpec(
 registry.register(spec, search_docs)
 ```
 
-The gateway calls `search_docs(arguments, execution_context)` only after the request passes policy.
+The gateway calls `search_docs(arguments, execution_context)` after the request passes policy.
 The execution context carries the authenticated principal and any server-selected credential.
 
 ## Project records
@@ -227,23 +229,22 @@ The execution context carries the authenticated principal and any server-selecte
 ## Current limits
 
 Nonce, rate, and pending-approval state is held in memory. The SQLite store can persist request
-claims and successful effects, though it does not preserve pending approvals. Registered adapters
-run as trusted application code and are not sandboxed. The audit chain detects record edits;
+claims and successful effects. Pending approvals remain memory-resident. Registered adapters run
+as trusted application code outside a sandbox. The audit chain detects record edits;
 external anchoring is needed to detect truncation or replacement of the complete file.
 
-Bounded checking covers only the supplied templates, flow requirements, principal, and depth. A
-passing report is evidence about that finite model. It is not a proof for arbitrary adapter code or
-unmodelled tool arguments.
+Bounded-checking evidence applies to the supplied templates, flow requirements, principal, and
+depth. Arbitrary adapter code and unmodelled tool arguments remain outside that finite model.
 
-Probe synthesis uses declared tool effects. It does not inspect adapter implementation or infer
-whether a declaration matches a tool's real external effects. Generated traces are evaluated as
-policy contracts and do not execute the registered adapters.
+Probe synthesis uses declared tool effects. Adapter implementation and correspondence to external
+effects lie outside the synthesis model. Generated traces evaluate policy contracts with adapter
+execution disabled.
 
 Path rules are checked again immediately before adapter execution. An adapter that opens files must
 still use operating-system controls that resist symlink changes between validation and file access.
 
-The repository contains fixture adapters and inert test values. It has not been evaluated as a
-deployed network service.
+Evaluation has covered fixture adapters and inert test values. Deployed network-service behaviour
+remains untested.
 
 ## Licence
 
