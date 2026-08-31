@@ -4,7 +4,7 @@ Secure Agent Gateway controls how a coding agent reaches registered tools. An ag
 signed request; the gateway checks identity, role, parameters, rate, and policy before any adapter
 runs.
 
-Version `0.3.1` provides:
+Version `0.4.0` provides:
 
 - HMAC-signed request envelopes with timestamp and nonce checks.
 - Role and tool allowlists with strict parameter rules.
@@ -20,6 +20,10 @@ Version `0.3.1` provides:
 - Mutation analysis for disabled, weakened, and narrowed sequence rules.
 - Bounded state exploration checked against separately authored flow requirements.
 - Shortest safety, availability, control, and evidence counterexamples.
+- Bounded semantic comparison of old and proposed sequence policies.
+- Union-state exploration that follows paths reachable under either policy.
+- Separate witnesses for existing defects, proposal defects, regressions, and corrections.
+- Signed policy-change reports bound to the complete case-level result.
 - A SQLite session store for persistent request claims and successful effects.
 - An explicit uncertain outcome when an adapter finishes before state commit fails.
 - An MCP host adapter for the `2026-07-28` tool result format.
@@ -104,6 +108,23 @@ PYTHONPATH=src python3.11 examples/run_bounded_check.py
 The frozen example is at [`reports/v0.3-bounded-check.json`](reports/v0.3-bounded-check.json). See
 [Bounded relational checking](docs/BOUNDED_CHECKING.md) for the model and scope.
 
+## Policy change checking
+
+`PolicyChangeChecker` evaluates an old sequence policy and its proposed replacement against the
+same independent flow requirements. It explores every branch reachable under either policy, so a
+newly opened path is checked beyond the first changed decision.
+
+The report separates defects already present in the old policy from defects introduced or repaired
+by the proposal. Safety, permitted access, control strength, causal evidence, and requirement
+coverage retain separate results. Each failed property carries its shortest trace witness.
+
+```bash
+PYTHONPATH=src python3.11 examples/run_policy_change_check.py
+```
+
+The checked report is at [`reports/v0.4-policy-change.json`](reports/v0.4-policy-change.json). See
+[Policy change checking](docs/POLICY_CHANGE_CHECKING.md) for report fields and limits.
+
 ## Persistent session state
 
 `SQLiteSessionStore` preserves successful effects and claimed request identifiers across gateway
@@ -172,6 +193,7 @@ The execution context carries the authenticated principal and any server-selecte
 - [Attack cases](docs/ATTACK_CASES.md)
 - [Related work](docs/RELATED_WORK.md)
 - [Bounded relational checking](docs/BOUNDED_CHECKING.md)
+- [Policy change checking](docs/POLICY_CHANGE_CHECKING.md)
 - [Persistent session state](docs/PERSISTENT_STATE.md)
 - [Threat model](THREAT_MODEL.md)
 - [Security policy](SECURITY.md)

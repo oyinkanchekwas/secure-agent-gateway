@@ -34,6 +34,7 @@ its roles. The attacker may inspect returned tool output.
 | Audit modification | Redaction and hash-linked records |
 | Process restart replay | Persistent request claims in `SQLiteSessionStore` |
 | Cross-process sequence race | Immediate SQLite transaction around evaluation and effect commit |
+| Unsafe policy replacement | Union-state change check against separate flow requirements |
 
 ## Assumptions
 
@@ -42,6 +43,10 @@ code is reviewed and runs with the minimum operating-system permissions needed f
 Approvers authenticate outside the agent session. System time is trustworthy enough for request and
 receipt expiry. Filesystem adapters use race-safe operating-system calls after the gateway path
 check. Host-issued session handles are opaque, time-bounded, and checked against caller authority.
+
+Policy-change checks assume that the invocation templates and flow requirements were reviewed
+outside the runtime policy implementation. An incomplete alphabet or shallow event limit can leave
+a flow requirement uncovered; the report names each uncovered requirement.
 
 ## Outside this release
 
