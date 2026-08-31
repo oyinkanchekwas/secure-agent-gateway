@@ -99,11 +99,20 @@ class SecureAgentGateway:
                 audit_event_id=event_id,
             )
 
-        if not self._sessions.claim_request(
-            request.request_id,
-            principal.principal_id,
-            now=observed_now,
-        ):
+        try:
+            request_claimed = self._sessions.claim_request(
+                request.request_id,
+                principal.principal_id,
+                now=observed_now,
+            )
+        except Exception:
+            return self._session_failure_result(
+                request=request,
+                result=None,
+                fallback_decision=None,
+                now=observed_now,
+            )
+        if not request_claimed:
             decision = PolicyDecision(
                 control=Control.DENY,
                 reason_codes=("request.duplicate_id",),
@@ -118,44 +127,90 @@ class SecureAgentGateway:
                 error_code="request.duplicate_id",
                 audit_event_id=event_id,
             )
-        with self._sessions.serialise(principal.principal_id, request.session_id):
-            snapshot = self._sessions.snapshot(principal.principal_id, request.session_id)
-            decision = self._policy.evaluate(principal, request, now=observed_now)
-            decision = self._sequence_policy.evaluate(request, snapshot, decision)
-            if decision.control == Control.DENY:
-                event_id = self._record(request, decision, status="denied", now=observed_now)
-                return GatewayResult(
-                    status="denied",
-                    decision=decision,
-                    error_code=decision.reason_codes[0],
-                    audit_event_id=event_id,
-                )
-            if decision.control == Control.REQUIRE_APPROVAL:
-                with self._state_lock:
-                    self._pending[request.request_id] = PendingCall(
-                        request=request,
-                        principal=principal,
-                        decision=decision,
-                        created_at=observed_now,
+        result: GatewayResult | None = None
+        session_event: SessionEvent | None = None
+        transaction_entered = False
+        transaction_body_completed = False
+        try:
+            with self._sessions.serialise(principal.principal_id, request.session_id):
+                transaction_entered = True
+                try:
+                    snapshot = self._sessions.snapshot(
+                        principal.principal_id,
+                        request.session_id,
                     )
-                event_id = self._record(
-                    request,
-                    decision,
-                    status="pending_approval",
+                except Exception:
+                    result = self._session_failure_result(
+                        request=request,
+                        result=None,
+                        fallback_decision=None,
+                        now=observed_now,
+                    )
+                else:
+                    decision = self._policy.evaluate(
+                        principal,
+                        request,
+                        now=observed_now,
+                    )
+                    decision = self._sequence_policy.evaluate(request, snapshot, decision)
+                    if decision.control == Control.DENY:
+                        event_id = self._record(
+                            request,
+                            decision,
+                            status="denied",
+                            now=observed_now,
+                        )
+                        result = GatewayResult(
+                            status="denied",
+                            decision=decision,
+                            error_code=decision.reason_codes[0],
+                            audit_event_id=event_id,
+                        )
+                    elif decision.control == Control.REQUIRE_APPROVAL:
+                        with self._state_lock:
+                            self._pending[request.request_id] = PendingCall(
+                                request=request,
+                                principal=principal,
+                                decision=decision,
+                                created_at=observed_now,
+                            )
+                        event_id = self._record(
+                            request,
+                            decision,
+                            status="pending_approval",
+                            now=observed_now,
+                        )
+                        result = GatewayResult(
+                            status="pending_approval",
+                            decision=decision,
+                            audit_event_id=event_id,
+                        )
+                    else:
+                        result, session_event = self._execute(
+                            request=request,
+                            principal=principal,
+                            decision=decision,
+                            snapshot=snapshot,
+                            now=observed_now,
+                        )
+                transaction_body_completed = True
+        except Exception:
+            if not transaction_entered or transaction_body_completed:
+                return self._session_failure_result(
+                    request=request,
+                    result=result,
+                    fallback_decision=None,
                     now=observed_now,
                 )
-                return GatewayResult(
-                    status="pending_approval",
-                    decision=decision,
-                    audit_event_id=event_id,
-                )
-            return self._execute(
-                request=request,
-                principal=principal,
-                decision=decision,
-                snapshot=snapshot,
-                now=observed_now,
-            )
+            raise
+        if result is None:
+            raise RuntimeError("session transaction produced no result")
+        return self._finalise_session_result(
+            request=request,
+            result=result,
+            session_event=session_event,
+            now=observed_now,
+        )
 
     def resume(
         self,
@@ -218,38 +273,78 @@ class SecureAgentGateway:
                 approval_id=receipt.approval_id,
             )
 
-        with self._sessions.serialise(
-            pending.principal.principal_id,
-            pending.request.session_id,
-        ):
-            snapshot = self._sessions.snapshot(
+        result = None
+        session_event = None
+        transaction_entered = False
+        transaction_body_completed = False
+        try:
+            with self._sessions.serialise(
                 pending.principal.principal_id,
                 pending.request.session_id,
-            )
-            if snapshot.digest != pending.decision.context_digest:
-                decision = _approval_denial(pending.decision, "approval.context_changed")
-                event_id = self._record(
-                    pending.request,
-                    decision,
-                    status="denied",
+            ):
+                transaction_entered = True
+                try:
+                    snapshot = self._sessions.snapshot(
+                        pending.principal.principal_id,
+                        pending.request.session_id,
+                    )
+                except Exception:
+                    result = self._session_failure_result(
+                        request=pending.request,
+                        result=None,
+                        fallback_decision=pending.decision,
+                        now=observed_now,
+                        approval_id=receipt.approval_id,
+                    )
+                else:
+                    if snapshot.digest != pending.decision.context_digest:
+                        decision = _approval_denial(
+                            pending.decision,
+                            "approval.context_changed",
+                        )
+                        event_id = self._record(
+                            pending.request,
+                            decision,
+                            status="denied",
+                            now=observed_now,
+                            approval_id=receipt.approval_id,
+                        )
+                        result = GatewayResult(
+                            status="denied",
+                            decision=decision,
+                            error_code="approval.context_changed",
+                            audit_event_id=event_id,
+                            approval_id=receipt.approval_id,
+                        )
+                    else:
+                        result, session_event = self._execute(
+                            request=pending.request,
+                            principal=pending.principal,
+                            decision=pending.decision,
+                            snapshot=snapshot,
+                            now=observed_now,
+                            approval_id=receipt.approval_id,
+                        )
+                transaction_body_completed = True
+        except Exception:
+            if not transaction_entered or transaction_body_completed:
+                return self._session_failure_result(
+                    request=pending.request,
+                    result=result,
+                    fallback_decision=pending.decision,
                     now=observed_now,
                     approval_id=receipt.approval_id,
                 )
-                return GatewayResult(
-                    status="denied",
-                    decision=decision,
-                    error_code="approval.context_changed",
-                    audit_event_id=event_id,
-                    approval_id=receipt.approval_id,
-                )
-            return self._execute(
-                request=pending.request,
-                principal=pending.principal,
-                decision=pending.decision,
-                snapshot=snapshot,
-                now=observed_now,
-                approval_id=receipt.approval_id,
-            )
+            raise
+        if result is None:
+            raise RuntimeError("session transaction produced no result")
+        return self._finalise_session_result(
+            request=pending.request,
+            result=result,
+            session_event=session_event,
+            now=observed_now,
+            approval_id=receipt.approval_id,
+        )
 
     def _execute(
         self,
@@ -260,7 +355,7 @@ class SecureAgentGateway:
         snapshot: SessionSnapshot,
         now: int,
         approval_id: str | None = None,
-    ) -> GatewayResult:
+    ) -> tuple[GatewayResult, SessionEvent | None]:
         if decision.policy_version != self._policy.policy_version:
             changed = _approval_denial(decision, "policy.version_changed")
             event_id = self._record(
@@ -270,12 +365,15 @@ class SecureAgentGateway:
                 now=now,
                 approval_id=approval_id,
             )
-            return GatewayResult(
-                status="denied",
-                decision=changed,
-                error_code="policy.version_changed",
-                audit_event_id=event_id,
-                approval_id=approval_id,
+            return (
+                GatewayResult(
+                    status="denied",
+                    decision=changed,
+                    error_code="policy.version_changed",
+                    audit_event_id=event_id,
+                    approval_id=approval_id,
+                ),
+                None,
             )
         current = self._policy.revalidate(principal, request)
         current = self._sequence_policy.evaluate(request, snapshot, current)
@@ -287,12 +385,15 @@ class SecureAgentGateway:
                 now=now,
                 approval_id=approval_id,
             )
-            return GatewayResult(
-                status="denied",
-                decision=current,
-                error_code=current.reason_codes[0],
-                audit_event_id=event_id,
-                approval_id=approval_id,
+            return (
+                GatewayResult(
+                    status="denied",
+                    decision=current,
+                    error_code=current.reason_codes[0],
+                    audit_event_id=event_id,
+                    approval_id=approval_id,
+                ),
+                None,
             )
         registered = self._policy.registry.get(request.tool)
         if registered is None:
@@ -315,12 +416,15 @@ class SecureAgentGateway:
                 now=now,
                 approval_id=approval_id,
             )
-            return GatewayResult(
-                status="execution_failed",
-                decision=decision,
-                error_code="adapter.failure",
-                audit_event_id=event_id,
-                approval_id=approval_id,
+            return (
+                GatewayResult(
+                    status="execution_failed",
+                    decision=decision,
+                    error_code="adapter.failure",
+                    audit_event_id=event_id,
+                    approval_id=approval_id,
+                ),
+                None,
             )
         try:
             session_event = self._sessions.record_success(
@@ -331,23 +435,41 @@ class SecureAgentGateway:
                 registered.spec.emitted_effects,
             )
         except Exception:
-            event_id = self._record(
-                request,
-                decision,
-                status="execution_uncertain",
-                now=now,
-                approval_id=approval_id,
+            return (
+                self._execution_uncertain_result(
+                    request=request,
+                    decision=decision,
+                    now=now,
+                    approval_id=approval_id,
+                ),
+                None,
             )
-            return GatewayResult(
-                status="execution_uncertain",
+        return (
+            GatewayResult(
+                status="succeeded",
                 decision=decision,
-                error_code="state.commit_failed",
-                audit_event_id=event_id,
+                output=output,
                 approval_id=approval_id,
-            )
+            ),
+            session_event,
+        )
+
+    def _finalise_session_result(
+        self,
+        *,
+        request: ToolRequest,
+        result: GatewayResult,
+        session_event: SessionEvent | None,
+        now: int,
+        approval_id: str | None = None,
+    ) -> GatewayResult:
+        if result.status != "succeeded":
+            return result
+        if session_event is None:
+            raise RuntimeError("successful execution has no committed session event")
         event_id = self._record(
             request,
-            decision,
+            result.decision,
             status="succeeded",
             now=now,
             approval_id=approval_id,
@@ -355,8 +477,79 @@ class SecureAgentGateway:
         )
         return GatewayResult(
             status="succeeded",
+            decision=result.decision,
+            output=result.output,
+            audit_event_id=event_id,
+            approval_id=approval_id,
+        )
+
+    def _session_failure_result(
+        self,
+        *,
+        request: ToolRequest,
+        result: GatewayResult | None,
+        fallback_decision: PolicyDecision | None,
+        now: int,
+        approval_id: str | None = None,
+    ) -> GatewayResult:
+        if result is not None:
+            if result.status == "succeeded":
+                return self._execution_uncertain_result(
+                    request=request,
+                    decision=result.decision,
+                    now=now,
+                    approval_id=approval_id,
+                )
+            return result
+        basis = fallback_decision
+        decision = PolicyDecision(
+            control=Control.DENY,
+            reason_codes=("state.unavailable",),
+            evidence_fields=("session_id",),
+            request_digest=(
+                basis.request_digest if basis is not None else request_digest(request)
+            ),
+            policy_version=(
+                basis.policy_version
+                if basis is not None
+                else self._policy.policy_version
+            ),
+            context_digest=(basis.context_digest if basis is not None else "0" * 64),
+        )
+        event_id = self._record(
+            request,
+            decision,
+            status="denied",
+            now=now,
+            approval_id=approval_id,
+        )
+        return GatewayResult(
+            status="denied",
             decision=decision,
-            output=output,
+            error_code="state.unavailable",
+            audit_event_id=event_id,
+            approval_id=approval_id,
+        )
+
+    def _execution_uncertain_result(
+        self,
+        *,
+        request: ToolRequest,
+        decision: PolicyDecision,
+        now: int,
+        approval_id: str | None = None,
+    ) -> GatewayResult:
+        event_id = self._record(
+            request,
+            decision,
+            status="execution_uncertain",
+            now=now,
+            approval_id=approval_id,
+        )
+        return GatewayResult(
+            status="execution_uncertain",
+            decision=decision,
+            error_code="state.commit_failed",
             audit_event_id=event_id,
             approval_id=approval_id,
         )

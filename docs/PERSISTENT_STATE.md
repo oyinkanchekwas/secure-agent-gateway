@@ -33,6 +33,10 @@ If an adapter returns and session-state commit then fails, the gateway records
 `execution_uncertain` with `state.commit_failed`. The host must not retry the external action until
 it has checked the provider-side outcome. The original request identifier remains claimed.
 
+The gateway writes its `succeeded` audit record only after the enclosing session transaction has
+committed. A transaction failure before adapter execution returns `state.unavailable` and does not
+call the adapter.
+
 ## Retention
 
 This release has no automatic expiry, compaction, or schema migration command. The database belongs
