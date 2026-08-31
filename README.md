@@ -4,7 +4,7 @@ Secure Agent Gateway controls how a coding agent reaches registered tools. An ag
 signed request; the gateway checks identity, role, parameters, rate, and policy before any adapter
 runs.
 
-Version `0.3.0` provides:
+Version `0.3.1` provides:
 
 - HMAC-signed request envelopes with timestamp and nonce checks.
 - Role and tool allowlists with strict parameter rules.

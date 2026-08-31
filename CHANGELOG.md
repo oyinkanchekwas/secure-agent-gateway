@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1 - 2026-08-31
+
+- Delayed success results and audit records until session transaction commit.
+- Converted commit-time failures after adapter execution to `execution_uncertain`.
+- Added a `state.unavailable` denial when session state fails before execution.
+
 ## 0.3.0 - 2026-08-31
 
 - Prevented sequence rules from weakening base policy denials.

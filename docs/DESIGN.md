@@ -111,3 +111,7 @@ runtime policies.
 effects on disk. An immediate SQLite transaction covers the session snapshot, policy evaluation,
 adapter call, and effect commit. SQLite permits one writer at a time, so this implementation favours
 strict ordering over write concurrency.
+
+A successful adapter result remains provisional until the session transaction exits. The gateway
+writes the success audit record after commit. Commit failure produces `execution_uncertain`; a
+session-store failure before execution produces `state.unavailable` and a denial.

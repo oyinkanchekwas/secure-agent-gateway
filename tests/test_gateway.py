@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -17,6 +18,87 @@ from tests.support import NOW, make_gateway, make_request, sign
 
 
 class SecureAgentGatewayTests(unittest.TestCase):
+    def test_transaction_exit_failure_has_no_success_record(self) -> None:
+        class ExitFailureStore(InMemorySessionStore):
+            @contextmanager
+            def serialise(self, principal_id, session_id):
+                with super().serialise(principal_id, session_id):
+                    yield
+                raise RuntimeError("commit failed")
+
+        with TemporaryDirectory() as directory:
+            fixture = make_gateway(
+                Path(directory),
+                session_store=ExitFailureStore(),
+            )
+            result = fixture.gateway.submit(sign(make_request()), now=NOW)
+            statuses = [
+                record["event"]["status"] for record in fixture.audit.verify()
+            ]
+
+        self.assertEqual(result.status, "execution_uncertain")
+        self.assertEqual(result.error_code, "state.commit_failed")
+        self.assertEqual(len(fixture.calls), 1)
+        self.assertEqual(statuses, ["execution_started", "execution_uncertain"])
+
+    def test_transaction_entry_failure_denies_before_adapter_execution(self) -> None:
+        class EntryFailureStore(InMemorySessionStore):
+            @contextmanager
+            def serialise(self, principal_id, session_id):
+                del principal_id, session_id
+                raise RuntimeError("state unavailable")
+                yield
+
+        with TemporaryDirectory() as directory:
+            fixture = make_gateway(
+                Path(directory),
+                session_store=EntryFailureStore(),
+            )
+            result = fixture.gateway.submit(sign(make_request()), now=NOW)
+
+        self.assertEqual(result.status, "denied")
+        self.assertEqual(result.error_code, "state.unavailable")
+        self.assertEqual(fixture.calls, [])
+
+    def test_approval_resume_reports_transaction_exit_failure(self) -> None:
+        class ExitFailureStore(InMemorySessionStore):
+            @contextmanager
+            def serialise(self, principal_id, session_id):
+                with super().serialise(principal_id, session_id):
+                    yield
+                raise RuntimeError("commit failed")
+
+        with TemporaryDirectory() as directory:
+            base = Path(directory)
+            fixture = make_gateway(
+                base,
+                session_store=ExitFailureStore(),
+            )
+            request = make_request(
+                tool="delete_file",
+                arguments={"path": str(base / "workspace" / "old.txt")},
+            )
+            pending = fixture.gateway.submit(sign(request), now=NOW)
+            receipt = fixture.approvals.issue(
+                pending.decision,
+                approver_id="reviewer-1",
+                now=NOW + 1,
+            )
+            result = fixture.gateway.resume(
+                request.request_id,
+                receipt,
+                now=NOW + 2,
+            )
+            statuses = [
+                record["event"]["status"] for record in fixture.audit.verify()
+            ]
+
+        self.assertEqual(pending.status, "pending_approval")
+        self.assertEqual(result.status, "execution_uncertain")
+        self.assertEqual(result.approval_id, receipt.approval_id)
+        self.assertEqual(statuses[-2:], ["execution_started", "execution_uncertain"])
+        self.assertNotIn("succeeded", statuses)
+
     def test_state_commit_failure_reports_an_uncertain_execution(self) -> None:
         class FailingCommitStore(InMemorySessionStore):
             def record_success(self, *args, **kwargs):
