@@ -4,7 +4,7 @@ Secure Agent Gateway controls how a coding agent reaches registered tools. An ag
 signed request; the gateway checks identity, role, parameters, rate, and policy before any adapter
 runs.
 
-Version `0.4.0` provides:
+Version `0.5.0` provides:
 
 - HMAC-signed request envelopes with timestamp and nonce checks.
 - Role and tool allowlists with strict parameter rules.
@@ -24,6 +24,9 @@ Version `0.4.0` provides:
 - Union-state exploration that follows paths reachable under either policy.
 - Separate witnesses for existing defects, proposal defects, regressions, and corrections.
 - Signed policy-change reports bound to the complete case-level result.
+- Requirement-driven synthesis of paired policy probes.
+- Causal contrasts for each source effect and temporal probes for history windows.
+- Named synthesis gaps, ambiguity counts, and mutation-tested generated contracts.
 - A SQLite session store for persistent request claims and successful effects.
 - An explicit uncertain outcome when an adapter finishes before state commit fails.
 - An MCP host adapter for the `2026-07-28` tool result format.
@@ -125,6 +128,28 @@ PYTHONPATH=src python3.11 examples/run_policy_change_check.py
 The checked report is at [`reports/v0.4-policy-change.json`](reports/v0.4-policy-change.json). See
 [Policy change checking](docs/POLICY_CHANGE_CHECKING.md) for report fields and limits.
 
+## Causal-temporal probe synthesis
+
+`RequirementProbeSynthesiser` converts independent `FlowRequirement` objects into controlled
+trajectory pairs. For each source effect, it finds a shortest prohibited trace and a one-event
+replacement that removes that effect while retaining the others. Where the minimum trace does not
+reach the declared history boundary, a temporal probe pads the trace with neutral events. The
+isolated source effect then occupies the oldest visible position.
+
+The synthesiser reports missing source producers, shadowed controls, and conditions that cannot be
+isolated with the supplied invocation alphabet. Equally minimal pairs remain counted in the report.
+Generated probes compile into `PairedTrajectoryContract` objects and can be checked with the normal
+trajectory runner and mutation analyser. Separate source-depth, trace-length, and candidate limits
+bound the search.
+
+```bash
+PYTHONPATH=src python3.11 examples/run_probe_synthesis.py
+```
+
+The reproducible result is at
+[`reports/v0.5-causal-temporal-probes.json`](reports/v0.5-causal-temporal-probes.json). See
+[Causal-temporal probe synthesis](docs/PROBE_SYNTHESIS.md) for the search method and limits.
+
 ## Persistent session state
 
 `SQLiteSessionStore` preserves successful effects and claimed request identifiers across gateway
@@ -194,6 +219,7 @@ The execution context carries the authenticated principal and any server-selecte
 - [Related work](docs/RELATED_WORK.md)
 - [Bounded relational checking](docs/BOUNDED_CHECKING.md)
 - [Policy change checking](docs/POLICY_CHANGE_CHECKING.md)
+- [Causal-temporal probe synthesis](docs/PROBE_SYNTHESIS.md)
 - [Persistent session state](docs/PERSISTENT_STATE.md)
 - [Threat model](THREAT_MODEL.md)
 - [Security policy](SECURITY.md)
@@ -208,6 +234,10 @@ external anchoring is needed to detect truncation or replacement of the complete
 Bounded checking covers only the supplied templates, flow requirements, principal, and depth. A
 passing report is evidence about that finite model. It is not a proof for arbitrary adapter code or
 unmodelled tool arguments.
+
+Probe synthesis uses declared tool effects. It does not inspect adapter implementation or infer
+whether a declaration matches a tool's real external effects. Generated traces are evaluated as
+policy contracts and do not execute the registered adapters.
 
 Path rules are checked again immediately before adapter execution. An adapter that opens files must
 still use operating-system controls that resist symlink changes between validation and file access.

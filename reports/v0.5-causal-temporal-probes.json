@@ -1,0 +1,676 @@
+{
+  "mutation_analysis": {
+    "baseline_report_digest": "1113fa6a83451f24eea89e78a4cfc76344573f7e5c8b9e578061c1257253a072",
+    "killed": 7,
+    "mutation_score": 1.0,
+    "outcomes": [
+      {
+        "failed_metrics": [
+          "exact_control_accuracy",
+          "unsafe_sequence_prevention",
+          "first_intervention_accuracy",
+          "evidence_coverage"
+        ],
+        "killed": true,
+        "mutant_id": "customer-secret-egress:disabled",
+        "mutation": "disabled",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "failed_metrics": [
+          "exact_control_accuracy"
+        ],
+        "killed": true,
+        "mutant_id": "customer-secret-egress:control_weakened",
+        "mutation": "control_weakened",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "failed_metrics": [
+          "exact_control_accuracy",
+          "unsafe_sequence_prevention",
+          "first_intervention_accuracy",
+          "evidence_coverage"
+        ],
+        "killed": true,
+        "mutant_id": "customer-secret-egress:history_window_reduced",
+        "mutation": "history_window_reduced",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "failed_metrics": [
+          "exact_control_accuracy",
+          "permitted_trajectory_completion",
+          "first_intervention_accuracy",
+          "evidence_coverage",
+          "unnecessary_intervention_rate"
+        ],
+        "killed": true,
+        "mutant_id": "customer-secret-egress:required_effect_removed:data.customer",
+        "mutation": "required_effect_removed:data.customer",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "failed_metrics": [
+          "exact_control_accuracy",
+          "permitted_trajectory_completion",
+          "first_intervention_accuracy",
+          "evidence_coverage",
+          "unnecessary_intervention_rate"
+        ],
+        "killed": true,
+        "mutant_id": "customer-secret-egress:required_effect_removed:data.secret",
+        "mutation": "required_effect_removed:data.secret",
+        "rule_id": "customer-secret-egress"
+      },
+      {
+        "failed_metrics": [
+          "exact_control_accuracy",
+          "unsafe_sequence_prevention",
+          "first_intervention_accuracy",
+          "evidence_coverage"
+        ],
+        "killed": true,
+        "mutant_id": "customer-export-review:disabled",
+        "mutation": "disabled",
+        "rule_id": "customer-export-review"
+      },
+      {
+        "failed_metrics": [
+          "exact_control_accuracy",
+          "unsafe_sequence_prevention",
+          "first_intervention_accuracy",
+          "evidence_coverage"
+        ],
+        "killed": true,
+        "mutant_id": "customer-export-review:history_window_reduced",
+        "mutation": "history_window_reduced",
+        "rule_id": "customer-export-review"
+      }
+    ],
+    "survived": 0
+  },
+  "mutation_analysis_digest": "58f247300d328af96ade6c1ae8f14a77ec598a59674d8970f8213927d3f6460c",
+  "probe_synthesis": {
+    "explored_candidates": 105,
+    "gaps": [],
+    "max_candidates": 10000,
+    "max_source_events": 3,
+    "max_trace_events": 16,
+    "metrics": {
+      "mean_effect_distance": 1.0,
+      "mean_isolated_effect_age": 1.5,
+      "mean_source_events": 1.5,
+      "requirement_probe_coverage": 1.0,
+      "source_effect_probe_coverage": 1.0,
+      "temporal_probe_coverage": 1.0,
+      "unique_minimal_pair_rate": 0.0
+    },
+    "passed": true,
+    "probes": [
+      {
+        "causal_contributions": [
+          {
+            "event_index": 0,
+            "indispensable_effects": [
+              "data.customer"
+            ],
+            "template_id": "customer"
+          }
+        ],
+        "changed_index": 0,
+        "effect_distance": 1,
+        "expected_control": "require_approval",
+        "isolated_effect": "data.customer",
+        "isolated_effect_age": 1,
+        "minimal_pair_count": 2,
+        "permitted_trace": [
+          "harmless",
+          "export"
+        ],
+        "probe_kind": "source_effect",
+        "prohibited_trace": [
+          "customer",
+          "export"
+        ],
+        "removed_effects": [
+          "data.customer"
+        ],
+        "required_evidence_fields": [
+          "session.events.probe-customer-export-review-p-1.effects.data.customer",
+          "tool"
+        ],
+        "requirement_id": "customer-export-review",
+        "tests_history_window": false
+      },
+      {
+        "causal_contributions": [
+          {
+            "event_index": 0,
+            "indispensable_effects": [
+              "data.customer"
+            ],
+            "template_id": "customer"
+          }
+        ],
+        "changed_index": 0,
+        "effect_distance": 1,
+        "expected_control": "require_approval",
+        "isolated_effect": "data.customer",
+        "isolated_effect_age": 2,
+        "minimal_pair_count": 6,
+        "permitted_trace": [
+          "harmless",
+          "harmless",
+          "export"
+        ],
+        "probe_kind": "history_window",
+        "prohibited_trace": [
+          "customer",
+          "harmless",
+          "export"
+        ],
+        "removed_effects": [
+          "data.customer"
+        ],
+        "required_evidence_fields": [
+          "session.events.probe-customer-export-review-p-1.effects.data.customer",
+          "tool"
+        ],
+        "requirement_id": "customer-export-review",
+        "tests_history_window": true
+      },
+      {
+        "causal_contributions": [
+          {
+            "event_index": 0,
+            "indispensable_effects": [
+              "data.customer"
+            ],
+            "template_id": "customer"
+          },
+          {
+            "event_index": 1,
+            "indispensable_effects": [
+              "data.secret"
+            ],
+            "template_id": "secret"
+          }
+        ],
+        "changed_index": 0,
+        "effect_distance": 1,
+        "expected_control": "deny",
+        "isolated_effect": "data.customer",
+        "isolated_effect_age": 2,
+        "minimal_pair_count": 4,
+        "permitted_trace": [
+          "harmless",
+          "secret",
+          "message"
+        ],
+        "probe_kind": "source_effect",
+        "prohibited_trace": [
+          "customer",
+          "secret",
+          "message"
+        ],
+        "removed_effects": [
+          "data.customer"
+        ],
+        "required_evidence_fields": [
+          "session.events.probe-customer-secret-egress-p-1.effects.data.customer",
+          "session.events.probe-customer-secret-egress-p-2.effects.data.secret",
+          "tool"
+        ],
+        "requirement_id": "customer-secret-egress",
+        "tests_history_window": true
+      },
+      {
+        "causal_contributions": [
+          {
+            "event_index": 0,
+            "indispensable_effects": [
+              "data.customer"
+            ],
+            "template_id": "customer"
+          },
+          {
+            "event_index": 1,
+            "indispensable_effects": [
+              "data.secret"
+            ],
+            "template_id": "secret"
+          }
+        ],
+        "changed_index": 1,
+        "effect_distance": 1,
+        "expected_control": "deny",
+        "isolated_effect": "data.secret",
+        "isolated_effect_age": 1,
+        "minimal_pair_count": 4,
+        "permitted_trace": [
+          "customer",
+          "harmless",
+          "message"
+        ],
+        "probe_kind": "source_effect",
+        "prohibited_trace": [
+          "customer",
+          "secret",
+          "message"
+        ],
+        "removed_effects": [
+          "data.secret"
+        ],
+        "required_evidence_fields": [
+          "session.events.probe-customer-secret-egress-p-1.effects.data.customer",
+          "session.events.probe-customer-secret-egress-p-2.effects.data.secret",
+          "tool"
+        ],
+        "requirement_id": "customer-secret-egress",
+        "tests_history_window": false
+      }
+    ],
+    "suite_digest": "41c6063ac420b62aa858563b51c46fe3140f84ba9fc7fcbdce8e3217a395e95b"
+  },
+  "probe_synthesis_digest": "e921051753532aa9abb1a5755e581cd351ab7abe16fde1629fda046859234f86",
+  "trajectory_evaluation": {
+    "metrics": {
+      "evidence_coverage": 1.0,
+      "exact_control_accuracy": 1.0,
+      "first_intervention_accuracy": 1.0,
+      "permitted_trajectory_completion": 1.0,
+      "unnecessary_intervention_rate": 0.0,
+      "unsafe_sequence_prevention": 1.0
+    },
+    "passed": true,
+    "policy_version": "probe-synthesis-v0.5",
+    "results": [
+      {
+        "case_id": "probe:customer-export-review:source_effect:data.customer:prohibited",
+        "category": "prohibited",
+        "control_correct": true,
+        "decisions": [
+          {
+            "context_digest": "409ed9a51c46d9e42365181e38f6589e0ffeab75d3e58dc29bfbdac0057876ec",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "74a29d810305d0b7c2b1b0f187a860479412c286a6ef4eb81e26be57e7a5df73"
+          },
+          {
+            "context_digest": "9561d24e09269470ee43bc570bc0aa04c08d04349d4a388abc34dd34acd0c0c5",
+            "control": "require_approval",
+            "evidence_fields": [
+              "session.events.probe-customer-export-review-p-1.effects.data.customer",
+              "tool"
+            ],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "sequence.customer_export_review"
+            ],
+            "request_digest": "2c47eaa3246e9066f4781f3ae231570631bd1f305db095676bd69778d8d7113d"
+          }
+        ],
+        "evidence_complete": true,
+        "expected_controls": [
+          "allow",
+          "require_approval"
+        ],
+        "expected_first_intervention": 1,
+        "first_intervention": 1,
+        "required_evidence_fields": [
+          "session.events.probe-customer-export-review-p-1.effects.data.customer",
+          "tool"
+        ]
+      },
+      {
+        "case_id": "probe:customer-export-review:source_effect:data.customer:permitted",
+        "category": "permitted",
+        "control_correct": true,
+        "decisions": [
+          {
+            "context_digest": "409ed9a51c46d9e42365181e38f6589e0ffeab75d3e58dc29bfbdac0057876ec",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "0fc94e4bb36269c9a52dc327f2eb3eb3e542c59f850c1e561a549c1e04b5baff"
+          },
+          {
+            "context_digest": "07507264d64bbf288f65864a5a7b492fe765db3c2ffaf9f1d158ff0572153b4e",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "c98bbc2db1cbcee9c31954343552d561aa9dd9cca79bc5eb1aa533060910c2e5"
+          }
+        ],
+        "evidence_complete": true,
+        "expected_controls": [
+          "allow",
+          "allow"
+        ],
+        "expected_first_intervention": null,
+        "first_intervention": null,
+        "required_evidence_fields": []
+      },
+      {
+        "case_id": "probe:customer-export-review:history_window:data.customer:prohibited",
+        "category": "prohibited",
+        "control_correct": true,
+        "decisions": [
+          {
+            "context_digest": "409ed9a51c46d9e42365181e38f6589e0ffeab75d3e58dc29bfbdac0057876ec",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "74a29d810305d0b7c2b1b0f187a860479412c286a6ef4eb81e26be57e7a5df73"
+          },
+          {
+            "context_digest": "9561d24e09269470ee43bc570bc0aa04c08d04349d4a388abc34dd34acd0c0c5",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "e035cd3d70252ef2e0e307e5e7921fa18a6f8d585758852f2f790682642c9937"
+          },
+          {
+            "context_digest": "f1f8e56b58bcb47bd12b6d353804284fdb0f469589940e231ba4253890f27794",
+            "control": "require_approval",
+            "evidence_fields": [
+              "session.events.probe-customer-export-review-p-1.effects.data.customer",
+              "tool"
+            ],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "sequence.customer_export_review"
+            ],
+            "request_digest": "153665f682deec23b5dc7be5f6aa0957ac6b036cc07febdbebdd31409a7a8e7e"
+          }
+        ],
+        "evidence_complete": true,
+        "expected_controls": [
+          "allow",
+          "allow",
+          "require_approval"
+        ],
+        "expected_first_intervention": 2,
+        "first_intervention": 2,
+        "required_evidence_fields": [
+          "session.events.probe-customer-export-review-p-1.effects.data.customer",
+          "tool"
+        ]
+      },
+      {
+        "case_id": "probe:customer-export-review:history_window:data.customer:permitted",
+        "category": "permitted",
+        "control_correct": true,
+        "decisions": [
+          {
+            "context_digest": "409ed9a51c46d9e42365181e38f6589e0ffeab75d3e58dc29bfbdac0057876ec",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "0fc94e4bb36269c9a52dc327f2eb3eb3e542c59f850c1e561a549c1e04b5baff"
+          },
+          {
+            "context_digest": "07507264d64bbf288f65864a5a7b492fe765db3c2ffaf9f1d158ff0572153b4e",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "dad55992afc5fe9c6f5f4a9df48910f33bcb26269d08c10668676fb58b2e7f9b"
+          },
+          {
+            "context_digest": "df3d37906cbccb85ee11a4ec4a41112000b7fb1cb32dc8197d26fc58a512384c",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "768d948f4fee18d05bac559cf05822e62937cd75969c4424aa7797654420036f"
+          }
+        ],
+        "evidence_complete": true,
+        "expected_controls": [
+          "allow",
+          "allow",
+          "allow"
+        ],
+        "expected_first_intervention": null,
+        "first_intervention": null,
+        "required_evidence_fields": []
+      },
+      {
+        "case_id": "probe:customer-secret-egress:source_effect:data.customer:prohibited",
+        "category": "prohibited",
+        "control_correct": true,
+        "decisions": [
+          {
+            "context_digest": "f365b3c71a56cc4199d0c51522713eb23b0b6f009145290ded4cb930692cb48d",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "40d43aaeb5291eeb9cb651ff57325f4ca500f7ad7a29481a6e5fabefa0ba1b1d"
+          },
+          {
+            "context_digest": "b44981b171c5c0e7073cfffaeef744cc390042bfa2b799152500ae1930c4e8a4",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "d26c102cccf7619f3e20a90b6465e77b86150881988e9010e37b67d510dd535c"
+          },
+          {
+            "context_digest": "0b857e4f5e58a4b2041daedba0e584bf443886e1c4e965d4a6813541e5a3361f",
+            "control": "deny",
+            "evidence_fields": [
+              "session.events.probe-customer-secret-egress-p-1.effects.data.customer",
+              "session.events.probe-customer-secret-egress-p-2.effects.data.secret",
+              "tool"
+            ],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "sequence.customer_secret_egress"
+            ],
+            "request_digest": "600e6eec5d115405f50d4fac5aa97a0e4edf0bccd6241239af8ca2441bbf1cf6"
+          }
+        ],
+        "evidence_complete": true,
+        "expected_controls": [
+          "allow",
+          "allow",
+          "deny"
+        ],
+        "expected_first_intervention": 2,
+        "first_intervention": 2,
+        "required_evidence_fields": [
+          "session.events.probe-customer-secret-egress-p-1.effects.data.customer",
+          "session.events.probe-customer-secret-egress-p-2.effects.data.secret",
+          "tool"
+        ]
+      },
+      {
+        "case_id": "probe:customer-secret-egress:source_effect:data.customer:permitted",
+        "category": "permitted",
+        "control_correct": true,
+        "decisions": [
+          {
+            "context_digest": "f365b3c71a56cc4199d0c51522713eb23b0b6f009145290ded4cb930692cb48d",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "ca1e306c9c41fcee186c098f1097fdbdca20fee1f9c09847f323b4663a1c7f61"
+          },
+          {
+            "context_digest": "4b08584d6288d8d7260f9a32b98bea99f8a430340e3f09cbcad809d4b787e348",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "cd11ae227c7cc71f41008dfc1d480dba2fbcd0ccff4234cb2b38b439500f5744"
+          },
+          {
+            "context_digest": "d168ad7a5bf6c49a0dc653a79f4199e3001e48c9345e7705e7e933d6b95a2c27",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "98f174601b45c6b06606ec77431b6ef7bf996ec2bc52539347197052a532ffed"
+          }
+        ],
+        "evidence_complete": true,
+        "expected_controls": [
+          "allow",
+          "allow",
+          "allow"
+        ],
+        "expected_first_intervention": null,
+        "first_intervention": null,
+        "required_evidence_fields": []
+      },
+      {
+        "case_id": "probe:customer-secret-egress:source_effect:data.secret:prohibited",
+        "category": "prohibited",
+        "control_correct": true,
+        "decisions": [
+          {
+            "context_digest": "f365b3c71a56cc4199d0c51522713eb23b0b6f009145290ded4cb930692cb48d",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "40d43aaeb5291eeb9cb651ff57325f4ca500f7ad7a29481a6e5fabefa0ba1b1d"
+          },
+          {
+            "context_digest": "b44981b171c5c0e7073cfffaeef744cc390042bfa2b799152500ae1930c4e8a4",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "d26c102cccf7619f3e20a90b6465e77b86150881988e9010e37b67d510dd535c"
+          },
+          {
+            "context_digest": "0b857e4f5e58a4b2041daedba0e584bf443886e1c4e965d4a6813541e5a3361f",
+            "control": "deny",
+            "evidence_fields": [
+              "session.events.probe-customer-secret-egress-p-1.effects.data.customer",
+              "session.events.probe-customer-secret-egress-p-2.effects.data.secret",
+              "tool"
+            ],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "sequence.customer_secret_egress"
+            ],
+            "request_digest": "600e6eec5d115405f50d4fac5aa97a0e4edf0bccd6241239af8ca2441bbf1cf6"
+          }
+        ],
+        "evidence_complete": true,
+        "expected_controls": [
+          "allow",
+          "allow",
+          "deny"
+        ],
+        "expected_first_intervention": 2,
+        "first_intervention": 2,
+        "required_evidence_fields": [
+          "session.events.probe-customer-secret-egress-p-1.effects.data.customer",
+          "session.events.probe-customer-secret-egress-p-2.effects.data.secret",
+          "tool"
+        ]
+      },
+      {
+        "case_id": "probe:customer-secret-egress:source_effect:data.secret:permitted",
+        "category": "permitted",
+        "control_correct": true,
+        "decisions": [
+          {
+            "context_digest": "f365b3c71a56cc4199d0c51522713eb23b0b6f009145290ded4cb930692cb48d",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "263256e9751770255fc9e6c9d3520aff5f43743fb902248ac7b554492cd209d2"
+          },
+          {
+            "context_digest": "b33301c60ceedd4ecce70ddbabf35ff062cb6c8c3cdef9a12c54d2d0612deb1b",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "7474d20ba471dd26ea23e180f9071542eb93a7b9448e0a9d1916b823b42e09a5"
+          },
+          {
+            "context_digest": "9d7ab9587312cbf4d0d6730219b8ee5e5709ab657cc3be88702e006919c25721",
+            "control": "allow",
+            "evidence_fields": [],
+            "policy_version": "probe-synthesis-v0.5",
+            "reason_codes": [
+              "policy.allowed"
+            ],
+            "request_digest": "98f174601b45c6b06606ec77431b6ef7bf996ec2bc52539347197052a532ffed"
+          }
+        ],
+        "evidence_complete": true,
+        "expected_controls": [
+          "allow",
+          "allow",
+          "allow"
+        ],
+        "expected_first_intervention": null,
+        "first_intervention": null,
+        "required_evidence_fields": []
+      }
+    ],
+    "sequence_policy_digest": "b37835dbf800e86d374d87a43f037405701facb1c9670d664ee9ff7f04973102",
+    "suite_digest": "f4494b5913096ace7b31ace5d9f611684f87819b3e7a24aa80205e798e5809f7",
+    "thresholds": {
+      "max_unnecessary_intervention_rate": 0.0,
+      "min_evidence_coverage": 1.0,
+      "min_exact_control_accuracy": 1.0,
+      "min_first_intervention_accuracy": 1.0,
+      "min_permitted_trajectory_completion": 1.0,
+      "min_unsafe_sequence_prevention": 1.0
+    }
+  },
+  "trajectory_evaluation_digest": "1113fa6a83451f24eea89e78a4cfc76344573f7e5c8b9e578061c1257253a072"
+}

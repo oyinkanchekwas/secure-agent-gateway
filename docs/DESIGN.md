@@ -127,3 +127,18 @@ Expected controls and evidence come from `FlowRequirement`, not from either runt
 report records old-policy defects, proposal defects, regressions, corrections, and uncovered
 requirements separately. Its digest includes every explored decision, while the default rendering
 keeps the case-level table optional.
+
+## Causal-temporal probe basis
+
+The probe synthesiser treats `FlowRequirement` as the expected-behaviour source and registered tool
+effects as the search alphabet. It finds minimum-cardinality source traces, holds the sink fixed,
+and replaces one source event at a time. A source-effect probe is accepted only when the replacement
+removes one declared effect, retains every other required effect, and leaves the full trace
+permitted under the independent flow model.
+
+Requirements with a history window above one event, including unbounded history, receive a history
+check. For a finite window, the isolated source effect is placed at the oldest visible position so
+that a one-event contraction changes the expected control. Unbounded history is checked using state
+older than the latest event. The resulting causal-temporal basis is compiled into the same
+trajectory contracts used by the runtime policy evaluator. The synthesiser never changes the
+policy under test.

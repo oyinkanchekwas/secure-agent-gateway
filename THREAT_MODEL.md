@@ -48,6 +48,10 @@ Policy-change checks assume that the invocation templates and flow requirements 
 outside the runtime policy implementation. An incomplete alphabet or shallow event limit can leave
 a flow requirement uncovered; the report names each uncovered requirement.
 
+Probe synthesis assumes that each registered tool's declared effects match its successful adapter
+effects. Generated probes exercise policy evaluation only. They do not establish that adapter code
+emits the declared effects or confines undeclared external changes.
+
 ## Outside this release
 
 This release does not sandbox adapters, distribute keys, rotate credentials, or terminate TLS. It
