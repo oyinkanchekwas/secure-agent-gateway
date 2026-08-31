@@ -6,7 +6,11 @@ import unittest
 from secure_agent_gateway.model_checking import FlowRequirement, InvocationTemplate
 from secure_agent_gateway.models import Control, Principal
 from secure_agent_gateway.policy import PolicyEngine
-from secure_agent_gateway.policy_change import PolicyChangeAttestor, PolicyChangeChecker
+from secure_agent_gateway.policy_change import (
+    PolicyChangeAttestor,
+    PolicyChangeChecker,
+    PolicyChangeDecision,
+)
 from secure_agent_gateway.registry import ToolRegistry, ToolSpec
 from secure_agent_gateway.session import SequencePolicy, SequenceRule
 
@@ -164,6 +168,61 @@ class PolicyChangeCheckerTests(unittest.TestCase):
             item for item in report.candidate_witnesses if item.property_name == "safety"
         )
         self.assertEqual(safety.trace, ("customer", "secret", "message"))
+        regression = next(
+            item
+            for item in report.regression_witnesses
+            if item.property_name == "safety"
+        )
+        self.assertEqual(regression.trace, safety.trace)
+        self.assertFalse(regression.baseline_reachable)
+        self.assertTrue(regression.candidate_reachable)
+
+    def test_closed_unsafe_path_keeps_its_access_cost_visible(self) -> None:
+        baseline = SequencePolicy(())
+        candidate = SequencePolicy(
+            [
+                SequenceRule(
+                    rule_id="block-secret-after-customer",
+                    target_tools=frozenset({"read_secret"}),
+                    required_effects=frozenset({"data.customer"}),
+                    control=Control.DENY,
+                    reason_code="sequence.block_secret_after_customer",
+                )
+            ]
+        )
+
+        report = self._run(baseline, candidate)
+
+        availability = next(
+            item
+            for item in report.regression_witnesses
+            if item.property_name == "availability"
+        )
+        self.assertEqual(availability.trace, ("customer", "secret"))
+        safety = next(
+            item
+            for item in report.correction_witnesses
+            if item.property_name == "safety"
+        )
+        self.assertEqual(safety.trace, ("customer", "secret", "message"))
+        self.assertTrue(safety.baseline_reachable)
+        self.assertFalse(safety.candidate_reachable)
+
+    def test_evidence_order_does_not_create_a_semantic_change(self) -> None:
+        decision = PolicyChangeDecision(
+            trace=("customer", "secret", "message"),
+            baseline_reachable=True,
+            candidate_reachable=True,
+            expected_control=Control.DENY,
+            baseline_control=Control.DENY,
+            candidate_control=Control.DENY,
+            matched_requirements=("customer-secret-egress",),
+            required_evidence_fields=("session.effects.data.customer",),
+            baseline_evidence_fields=("field.a", "field.b"),
+            candidate_evidence_fields=("field.b", "field.a"),
+        )
+
+        self.assertFalse(decision.semantic_change)
 
     def test_attestation_binds_the_full_case_level_report(self) -> None:
         report = self._run(self.complete, self.complete)
@@ -173,6 +232,8 @@ class PolicyChangeCheckerTests(unittest.TestCase):
         self.assertTrue(attestor.verify(report, attestation))
         changed = replace(report, max_events=report.max_events + 1)
         self.assertFalse(attestor.verify(changed, attestation))
+        changed_budget = replace(report, max_decisions=report.max_decisions + 1)
+        self.assertFalse(attestor.verify(changed_budget, attestation))
 
     def test_search_budget_failure_does_not_return_a_partial_report(self) -> None:
         with self.assertRaisesRegex(ValueError, "exceeds max_decisions"):

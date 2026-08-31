@@ -12,7 +12,9 @@
     "baseline_witnesses": [
       {
         "baseline_control": "allow",
+        "baseline_reachable": true,
         "candidate_control": "deny",
+        "candidate_reachable": true,
         "expected_control": "deny",
         "missing_evidence_fields": [
           "session.events.change-1-customer.effects.data.customer",
@@ -29,7 +31,9 @@
       },
       {
         "baseline_control": "allow",
+        "baseline_reachable": true,
         "candidate_control": "deny",
+        "candidate_reachable": true,
         "expected_control": "deny",
         "missing_evidence_fields": [],
         "property_name": "safety",
@@ -62,7 +66,9 @@
     "correction_witnesses": [
       {
         "baseline_control": "allow",
+        "baseline_reachable": true,
         "candidate_control": "deny",
+        "candidate_reachable": true,
         "expected_control": "deny",
         "missing_evidence_fields": [
           "session.events.change-1-customer.effects.data.customer",
@@ -79,7 +85,9 @@
       },
       {
         "baseline_control": "allow",
+        "baseline_reachable": true,
         "candidate_control": "deny",
+        "candidate_reachable": true,
         "expected_control": "deny",
         "missing_evidence_fields": [],
         "property_name": "exact_control",
@@ -92,7 +100,9 @@
       },
       {
         "baseline_control": "allow",
+        "baseline_reachable": true,
         "candidate_control": "deny",
+        "candidate_reachable": true,
         "expected_control": "deny",
         "missing_evidence_fields": [],
         "property_name": "safety",
@@ -105,6 +115,7 @@
       }
     ],
     "explored_decisions": 155,
+    "max_decisions": 100000,
     "max_events": 3,
     "passed": true,
     "policy_version": "policy-change-v0.4",
@@ -118,5 +129,5 @@
       "min_unsafe_action_prevention": 1.0
     }
   },
-  "policy_change_digest": "413adc5b7716575decbaddb9c69efcfc0bca9e09166191e69817f10b91400d42"
+  "policy_change_digest": "01a2bbd38f6a297cd47d72129abd52c22567d1cf561de2748f49923a242b0827"
 }

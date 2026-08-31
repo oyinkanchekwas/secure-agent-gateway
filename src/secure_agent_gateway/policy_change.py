@@ -48,7 +48,8 @@ class PolicyChangeDecision:
     def semantic_change(self) -> bool:
         return (
             self.baseline_control != self.candidate_control
-            or self.baseline_evidence_fields != self.candidate_evidence_fields
+            or frozenset(self.baseline_evidence_fields)
+            != frozenset(self.candidate_evidence_fields)
         )
 
     def to_mapping(self) -> dict[str, Any]:
@@ -74,6 +75,8 @@ class PolicyChangeWitness:
     property_name: str
     requirement_id: str
     trace: tuple[str, ...]
+    baseline_reachable: bool
+    candidate_reachable: bool
     expected_control: Control
     baseline_control: Control
     candidate_control: Control
@@ -84,6 +87,8 @@ class PolicyChangeWitness:
             "property_name": self.property_name,
             "requirement_id": self.requirement_id,
             "trace": list(self.trace),
+            "baseline_reachable": self.baseline_reachable,
+            "candidate_reachable": self.candidate_reachable,
             "expected_control": self.expected_control.value,
             "baseline_control": self.baseline_control.value,
             "candidate_control": self.candidate_control.value,
@@ -98,6 +103,7 @@ class PolicyChangeReport:
     candidate_policy_digest: str
     suite_digest: str
     max_events: int
+    max_decisions: int
     explored_decisions: int
     baseline_metrics: Mapping[str, float]
     candidate_metrics: Mapping[str, float]
@@ -119,6 +125,7 @@ class PolicyChangeReport:
             "candidate_policy_digest": self.candidate_policy_digest,
             "suite_digest": self.suite_digest,
             "max_events": self.max_events,
+            "max_decisions": self.max_decisions,
             "explored_decisions": self.explored_decisions,
             "baseline_metrics": dict(self.baseline_metrics),
             "candidate_metrics": dict(self.candidate_metrics),
@@ -324,6 +331,7 @@ class PolicyChangeChecker:
             candidate_policy_digest=self._candidate.digest,
             suite_digest=suite_digest,
             max_events=max_events,
+            max_decisions=max_decisions,
             explored_decisions=len(decisions),
             baseline_metrics=baseline_metrics,
             candidate_metrics=candidate_metrics,
@@ -401,7 +409,29 @@ def _find_change_witnesses(
     regressions: list[PolicyChangeWitness] = []
     corrections: list[PolicyChangeWitness] = []
     for decision in decisions:
-        if not (decision.baseline_reachable and decision.candidate_reachable):
+        if decision.candidate_reachable and not decision.baseline_reachable:
+            for property_name in _policy_failure_properties(
+                decision,
+                candidate=True,
+            ):
+                requirement_ids = decision.matched_requirements or ("permitted-use",)
+                for requirement_id in requirement_ids:
+                    regressions.append(
+                        _witness(property_name, requirement_id, decision, candidate=True)
+                    )
+            continue
+        if decision.baseline_reachable and not decision.candidate_reachable:
+            for property_name in _policy_failure_properties(
+                decision,
+                candidate=False,
+            ):
+                requirement_ids = decision.matched_requirements or ("permitted-use",)
+                for requirement_id in requirement_ids:
+                    corrections.append(
+                        _witness(property_name, requirement_id, decision, candidate=False)
+                    )
+            continue
+        if not decision.baseline_reachable:
             continue
         requirement_ids = decision.matched_requirements or ("permitted-use",)
         for property_name in _regression_properties(decision):
@@ -429,24 +459,8 @@ def _find_policy_witnesses(
         )
         if not reachable:
             continue
-        actual = decision.candidate_control if candidate else decision.baseline_control
-        evidence_complete = (
-            decision.candidate_evidence_complete
-            if candidate
-            else decision.baseline_evidence_complete
-        )
         requirement_ids = decision.matched_requirements or ("permitted-use",)
-        properties: list[str] = []
-        if actual != decision.expected_control:
-            if decision.expected_control == Control.ALLOW:
-                properties.append("availability")
-            elif actual == Control.ALLOW:
-                properties.append("safety")
-            else:
-                properties.append("exact_control")
-        if decision.expected_control != Control.ALLOW and not evidence_complete:
-            properties.append("evidence")
-        for property_name in properties:
+        for property_name in _policy_failure_properties(decision, candidate=candidate):
             for requirement_id in requirement_ids:
                 witnesses.append(
                     _witness(
@@ -457,6 +471,30 @@ def _find_policy_witnesses(
                     )
                 )
     return _shortest(witnesses)
+
+
+def _policy_failure_properties(
+    decision: PolicyChangeDecision,
+    *,
+    candidate: bool,
+) -> tuple[str, ...]:
+    actual = decision.candidate_control if candidate else decision.baseline_control
+    evidence_complete = (
+        decision.candidate_evidence_complete
+        if candidate
+        else decision.baseline_evidence_complete
+    )
+    properties: list[str] = []
+    if actual != decision.expected_control:
+        if decision.expected_control == Control.ALLOW:
+            properties.append("availability")
+        elif actual == Control.ALLOW:
+            properties.append("safety")
+        else:
+            properties.append("exact_control")
+    if decision.expected_control != Control.ALLOW and not evidence_complete:
+        properties.append("evidence")
+    return tuple(properties)
 
 
 def _regression_properties(decision: PolicyChangeDecision) -> tuple[str, ...]:
@@ -537,6 +575,8 @@ def _witness(
         property_name=property_name,
         requirement_id=requirement_id,
         trace=decision.trace,
+        baseline_reachable=decision.baseline_reachable,
+        candidate_reachable=decision.candidate_reachable,
         expected_control=decision.expected_control,
         baseline_control=decision.baseline_control,
         candidate_control=decision.candidate_control,

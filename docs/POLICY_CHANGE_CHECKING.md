@@ -31,9 +31,14 @@ The report keeps four findings apart:
 Safety, permitted access, exact control strength, and causal evidence are assessed independently.
 For each property and flow requirement, breadth-first order supplies the shortest witness.
 
-`baseline_only_boundaries` and `candidate_only_boundaries` count states reached by one policy. The
-report also lists flow requirements that lack a controlled prohibited/permitted boundary at the
-configured depth.
+`baseline_only_boundaries` and `candidate_only_boundaries` count states reached by one policy. A
+failure on a candidate-only path is a regression because the proposal made that path executable. A
+failure removed with a baseline-only path is recorded as a correction. The report also lists flow
+requirements that lack a controlled prohibited/permitted boundary at the configured depth.
+
+Every witness carries old-policy and proposal reachability flags. Controls evaluated outside a
+policy's reachable state space remain visible for diagnosis, while the flags prevent them from
+being mistaken for executable behaviour.
 
 ## Release decision
 
@@ -42,8 +47,8 @@ relational-boundary coverage. A regression fails the gate even when an aggregate
 relaxed.
 
 `PolicyChangeAttestor` can sign the complete case-level report digest. A signature therefore binds
-the old policy digest, proposal digest, requirement suite, exploration limits, metrics, and
-witnesses.
+the old policy digest, proposal digest, requirement suite, event limit, decision budget, metrics,
+and witnesses.
 
 Run the checked example:
 
