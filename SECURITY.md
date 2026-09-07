@@ -2,7 +2,7 @@
 
 ## Supported version
 
-Security fixes are applied to the current `0.5.x` line during private development.
+Security fixes are applied to the current `0.5.x` line.
 
 ## Reporting
 

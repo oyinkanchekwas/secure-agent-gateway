@@ -226,6 +226,11 @@ The execution context carries the authenticated principal and any server-selecte
 - [Threat model](THREAT_MODEL.md)
 - [Security policy](SECURITY.md)
 
+## Citation
+
+Citation metadata is available in [`CITATION.cff`](CITATION.cff). Cite version `0.5.0` when using
+the causal-temporal probe synthesis report or its generated contracts.
+
 ## Current limits
 
 Nonce, rate, and pending-approval state is held in memory. The SQLite store can persist request

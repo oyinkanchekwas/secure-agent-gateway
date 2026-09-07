@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "Please cite this software using the metadata below."
+title: "Secure Agent Gateway"
+type: software
+authors:
+  - family-names: Onwuchekwa
+    given-names: Oyinkansola
+repository-code: "https://github.com/oyinkanchekwas/secure-agent-gateway"
+license: MIT
+version: 0.5.0
+date-released: 2026-09-07
