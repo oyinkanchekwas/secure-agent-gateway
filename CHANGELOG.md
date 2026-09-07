@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.0 - 2026-08-31
+## 0.5.0 - 2026-09-07
 
 - Added requirement-driven synthesis of paired policy probes.
 - Generated one controlled contrast for each declared source effect.
