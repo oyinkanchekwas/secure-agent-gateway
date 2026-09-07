@@ -7,6 +7,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from secure_agent_gateway.auth import canonical_json
 from secure_agent_gateway.models import Control, PolicyDecision, Principal, ToolRequest
 from secure_agent_gateway.policy import PolicyEngine
+from secure_agent_gateway.request_diff import changed_fields, semantic_request
 from secure_agent_gateway.session import SequencePolicy, SequenceRule, SessionEvent, SessionSnapshot
 
 
@@ -99,9 +100,9 @@ class PairedTrajectoryContract:
         }
         if len(session_ids) != 1:
             raise ValueError("paired trajectories must use the same session handle")
-        observed = _changed_fields(
-            [_semantic_request(request) for request in self.prohibited.requests],
-            [_semantic_request(request) for request in self.permitted.requests],
+        observed = changed_fields(
+            [semantic_request(request) for request in self.prohibited.requests],
+            [semantic_request(request) for request in self.permitted.requests],
             "requests",
         )
         if not self.changed_fields or observed != set(self.changed_fields):
@@ -558,44 +559,9 @@ def _metric_passes(key: str, value: float, thresholds: TrajectoryThresholds) -> 
     return checks[key]
 
 
-def _semantic_request(request: ToolRequest) -> dict[str, Any]:
-    return {
-        "principal_id": request.principal_id,
-        "tool": request.tool,
-        "arguments": dict(request.arguments),
-    }
-
-
 def _recorded_request(request: ToolRequest) -> dict[str, Any]:
     return {
         "request_id": request.request_id,
         "session_id": request.session_id,
-        **_semantic_request(request),
+        **semantic_request(request),
     }
-
-
-def _changed_fields(left: Any, right: Any, prefix: str = "") -> set[str]:
-    if isinstance(left, Mapping) and isinstance(right, Mapping):
-        changed: set[str] = set()
-        for key in set(left) | set(right):
-            path = f"{prefix}.{key}" if prefix else str(key)
-            if key not in left or key not in right:
-                changed.add(path)
-            else:
-                changed.update(_changed_fields(left[key], right[key], path))
-        return changed
-    if (
-        isinstance(left, Sequence)
-        and isinstance(right, Sequence)
-        and not isinstance(left, (str, bytes))
-        and not isinstance(right, (str, bytes))
-    ):
-        changed = set()
-        for index in range(max(len(left), len(right))):
-            path = f"{prefix}.{index}" if prefix else str(index)
-            if index >= len(left) or index >= len(right):
-                changed.add(path)
-            else:
-                changed.update(_changed_fields(left[index], right[index], path))
-        return changed
-    return set() if left == right else {prefix}
