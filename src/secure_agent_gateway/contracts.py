@@ -8,6 +8,7 @@ from typing import Any, Iterable, Mapping
 from secure_agent_gateway.auth import canonical_json
 from secure_agent_gateway.models import Control, PolicyDecision, Principal, ToolRequest
 from secure_agent_gateway.policy import PolicyEngine
+from secure_agent_gateway.request_diff import semantic_request
 
 
 @dataclass(frozen=True)
@@ -26,7 +27,7 @@ class ContractCase:
     def to_mapping(self) -> dict[str, Any]:
         return {
             "case_id": self.case_id,
-            "request": _semantic_request(self.request),
+            "request": semantic_request(self.request),
             "expected_control": self.expected_control.value,
             "required_evidence_fields": list(self.required_evidence_fields),
         }
@@ -60,9 +61,9 @@ class PairedPolicyContract:
         }
         if len(principal_ids) != 1:
             raise ValueError("paired cases must use the contract principal")
-        observed = _changed_fields(
-            _semantic_request(self.prohibited.request),
-            _semantic_request(self.permitted.request),
+        observed = _contract_changed_fields(
+            semantic_request(self.prohibited.request),
+            semantic_request(self.permitted.request),
         )
         declared = set(self.changed_fields)
         if not declared or observed != declared:
@@ -303,15 +304,7 @@ def _fraction(items: list[ContractCaseResult], predicate: Any) -> float:
     return sum(1 for item in items if predicate(item)) / len(items)
 
 
-def _semantic_request(request: ToolRequest) -> dict[str, Any]:
-    return {
-        "principal_id": request.principal_id,
-        "tool": request.tool,
-        "arguments": dict(request.arguments),
-    }
-
-
-def _changed_fields(left: Any, right: Any, prefix: str = "") -> set[str]:
+def _contract_changed_fields(left: Any, right: Any, prefix: str = "") -> set[str]:
     if isinstance(left, Mapping) and isinstance(right, Mapping):
         changed: set[str] = set()
         for key in set(left) | set(right):
@@ -319,6 +312,6 @@ def _changed_fields(left: Any, right: Any, prefix: str = "") -> set[str]:
             if key not in left or key not in right:
                 changed.add(path)
             else:
-                changed.update(_changed_fields(left[key], right[key], path))
+                changed.update(_contract_changed_fields(left[key], right[key], path))
         return changed
     return set() if left == right else {prefix}

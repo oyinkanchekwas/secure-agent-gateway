@@ -132,7 +132,7 @@ the case-level table optional.
 The probe synthesiser treats `FlowRequirement` as the expected-behaviour source and registered tool
 effects as the search alphabet. It finds minimum-cardinality source traces, holds the sink fixed,
 and replaces one source event at a time. Probe acceptance requires the replacement to
-removes one declared effect, retains every other required effect, and leaves the full trace
+remove one declared effect, retain every other required effect, and leave the full trace
 permitted under the independent flow model.
 
 Requirements with a history window above one event, including unbounded history, receive a history
